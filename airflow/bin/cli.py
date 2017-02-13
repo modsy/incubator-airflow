@@ -755,8 +755,8 @@ def webserver(args):
         print(
             "Starting the web server on port {0} and host {1}.".format(
                 args.port, args.hostname))
-        app.run(debug=True, port=args.port, host=args.hostname,
-                ssl_context=(ssl_cert, ssl_key))
+        app.run(debug=True, port=args.port, host=args.hostname)
+                #ssl_context=(ssl_cert, ssl_key))
     else:
         pid, stdout, stderr, log_file = setup_locations("webserver", pid=args.pid)
         print(
@@ -788,8 +788,8 @@ def webserver(args):
 
         if args.daemon:
             run_args += ["-D"]
-        if ssl_cert:
-            run_args += ['--certfile', ssl_cert, '--keyfile', ssl_key]
+        # if ssl_cert:
+        #     run_args += ['--certfile', ssl_cert, '--keyfile', ssl_key]
 
         run_args += ["airflow.www.app:cached_app()"]
 
