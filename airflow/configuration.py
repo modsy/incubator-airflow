@@ -321,7 +321,8 @@ broker_url = sqla+mysql://airflow:airflow@localhost:3306/airflow
 
 # Another key Celery setting
 celery_result_backend = db+mysql://airflow:airflow@localhost:3306/airflow
-
+BROKER_TRANSPORT_OPTIONS_REGION = us-west-2
+BROKER_TRANSPORT_OPTIONS_POLLING_INTERVAL = 5
 # Celery Flower is a sweet UI for Celery. Airflow has a shortcut to start
 # it `airflow flower`. This defines the IP that Celery Flower runs on
 flower_host = 0.0.0.0

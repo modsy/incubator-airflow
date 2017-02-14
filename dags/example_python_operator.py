@@ -35,10 +35,15 @@ dag = DAG(
 
 def my_sleeping_function(random_base):
     """This is a function that will run within the DAG execution"""
+    with open("/Users/jeffreybian/workspace/traceback.txt", "w") as c:
+        c.write(traceback.format_exc())
     time.sleep(random_base)
 
 
 def print_context(ds, **kwargs):
+    import traceback
+    with open("/Users/jeffreybian/workspace/traceback.txt", "w") as c:
+        c.write(traceback.format_exc())
     pprint(kwargs)
     print(ds)
     return 'Whatever you return gets printed in the logs'
@@ -50,7 +55,7 @@ run_this = PythonOperator(
     dag=dag)
 
 # Generate 10 sleeping tasks, sleeping from 0 to 9 seconds respectively
-for i in range(10):
+for i in range(1):
     task = PythonOperator(
         task_id='sleep_for_' + str(i),
         python_callable=my_sleeping_function,

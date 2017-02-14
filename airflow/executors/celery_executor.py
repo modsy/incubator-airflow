@@ -40,9 +40,13 @@ class CeleryConfig(object):
     CELERY_ACKS_LATE = True
     BROKER_URL = configuration.get('celery', 'BROKER_URL')
     CELERY_RESULT_BACKEND = configuration.get('celery', 'CELERY_RESULT_BACKEND')
+    CELERY_IGNORE_RESULT = True
     CELERYD_CONCURRENCY = configuration.getint('celery', 'CELERYD_CONCURRENCY')
     CELERY_DEFAULT_QUEUE = DEFAULT_QUEUE
     CELERY_DEFAULT_EXCHANGE = DEFAULT_QUEUE
+    BROKER_TRANSPORT_OPTIONS = {
+        'region': 'sqs.us-west-2',
+    }
 
 app = Celery(
     configuration.get('celery', 'CELERY_APP_NAME'),
