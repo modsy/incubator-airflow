@@ -16,9 +16,6 @@ import logging
 import os
 import sys
 
-package_search_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.append(package_search_dir)
-
 from airflow import configuration
 from airflow.bin.cli import CLIFactory
 
