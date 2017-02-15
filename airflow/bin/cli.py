@@ -908,45 +908,6 @@ def worker(args):
         sp.kill()
 
 
-def sqs_worker(args):
-    env = os.environ.copy()
-    env['AIRFLOW_HOME'] = settings.AIRFLOW_HOME
-
-    # Celery worker
-    from airflow.contrib.worker.sqs_worker import Worker
-    from celery.bin import worker
-
-    worker = Worker(queues=args.queues, concurrency=args.concurrency)
-
-    if args.daemon:
-        pid, stdout, stderr, log_file = setup_locations("sqs_worker", args.pid, args.stdout, args.stderr, args.log_file)
-        handle = setup_logging(log_file)
-        stdout = open(stdout, 'w+')
-        stderr = open(stderr, 'w+')
-
-        ctx = daemon.DaemonContext(
-            pidfile=TimeoutPIDLockFile(pid, -1),
-            files_preserve=[handle],
-            stdout=stdout,
-            stderr=stderr,
-        )
-        with ctx:
-            sp = subprocess.Popen(['airflow', 'serve_logs'], env=env)
-            worker.run()
-            sp.kill()
-
-        stdout.close()
-        stderr.close()
-    else:
-        signal.signal(signal.SIGINT, sigint_handler)
-        signal.signal(signal.SIGTERM, sigint_handler)
-
-        sp = subprocess.Popen(['airflow', 'serve_logs'], env=env)
-
-        worker.run()
-        sp.kill()
-
-
 def initdb(args):  # noqa
     print("DB: " + repr(settings.engine.url))
     db_utils.initdb()
@@ -1599,11 +1560,6 @@ class CLIFactory(object):
             'help': "List/Add/Delete connections",
             'args': ('list_connections', 'add_connection', 'delete_connection',
                      'conn_id', 'conn_uri', 'conn_extra'),
-        }, {
-            'func': sqs_worker,
-            'help': "Start a SQS worker node",
-            'args': ('do_pickle', 'queues', 'concurrency',
-                     'pid', 'daemon', 'stdout', 'stderr', 'log_file'),
         },
     )
     subparsers_dict = {sp['func'].__name__: sp for sp in subparsers}

@@ -2,6 +2,7 @@
 *.bkp
 *.egg-info
 *.pyc
+*.pid
 .DS_Store
 .ipynb*
 .coverage

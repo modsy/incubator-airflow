@@ -522,7 +522,7 @@ class SchedulerJob(BaseJob):
                                                 'print_stats_interval')
         # Parse and schedule each file no faster than this interval. Default
         # to 3 minutes.
-        self.file_process_interval = file_process_interval
+        self.file_process_interval = (file_process_interval if file_process_interval else 300)
         # Directory where log files for the processes that scheduled the DAGs reside
         self.child_process_log_directory = conf.get('scheduler',
                                                     'child_process_log_directory')
@@ -1447,7 +1447,7 @@ class SchedulerJob(BaseJob):
             time_since_last_heartbeat = (datetime.now() -
                                          last_self_heartbeat_time).total_seconds()
             if time_since_last_heartbeat > self.heartrate:
-                self.logger.info("Heartbeating the scheduler")
+                self.logger.debug("Heartbeating the scheduler")
                 self.heartbeat()
                 last_self_heartbeat_time = datetime.now()
 
