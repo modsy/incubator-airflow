@@ -1063,7 +1063,7 @@ class SchedulerJob(BaseJob):
                                              task_concurrency_limit))
                     continue
 
-                command = " ".join(TI.generate_command(
+                command = TI.generate_command(
                     task_instance.dag_id,
                     task_instance.task_id,
                     task_instance.execution_date,
@@ -1075,7 +1075,7 @@ class SchedulerJob(BaseJob):
                     ignore_ti_state=False,
                     pool=task_instance.pool,
                     file_path=simple_dag_bag.get_dag(task_instance.dag_id).full_filepath,
-                    pickle_id=simple_dag_bag.get_dag(task_instance.dag_id).pickle_id))
+                    pickle_id=simple_dag_bag.get_dag(task_instance.dag_id).pickle_id)
 
                 priority = task_instance.priority_weight
                 queue = task_instance.queue

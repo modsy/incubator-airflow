@@ -30,13 +30,15 @@ PARALLELISM = configuration.get('core', 'PARALLELISM')
 To start the celery worker, run the command:
 airflow worker
 '''
-
+logging.basicConfig(level=logging.DEBUG)
 DEFAULT_QUEUE = configuration.get('celery', 'DEFAULT_QUEUE')
 
 
 class CeleryConfig(object):
     CELERY_ACCEPT_CONTENT = ['json', 'pickle']
     CELERYD_PREFETCH_MULTIPLIER = 1
+    CELERY_TASK_SERIALIZER = 'json'
+    CELERY_RESULT_SERIALIZER = 'json'
     CELERY_ACKS_LATE = True
     BROKER_URL = configuration.get('celery', 'BROKER_URL')
     CELERY_RESULT_BACKEND = configuration.get('celery', 'CELERY_RESULT_BACKEND')
@@ -44,8 +46,9 @@ class CeleryConfig(object):
     CELERYD_CONCURRENCY = configuration.getint('celery', 'CELERYD_CONCURRENCY')
     CELERY_DEFAULT_QUEUE = DEFAULT_QUEUE
     CELERY_DEFAULT_EXCHANGE = DEFAULT_QUEUE
+    CELERYD_HIJACK_ROOT_LOGGER = False
     BROKER_TRANSPORT_OPTIONS = {
-        'region': 'sqs.us-west-2',
+        'region': 'us-west-2',
     }
 
 app = Celery(
@@ -55,9 +58,11 @@ app = Celery(
 
 @app.task
 def execute_command(command):
-    logging.info("Executing command in Celery " + command)
+    import os
+    import sys
+    logging.info("Executing command in Celery " + " ".join(command))
     try:
-        subprocess.check_call(command, shell=True)
+        subprocess.check_call([sys.executable] + command, env=os.environ.copy())
     except subprocess.CalledProcessError as e:
         logging.error(e)
         raise AirflowException('Celery command failed')

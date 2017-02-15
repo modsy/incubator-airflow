@@ -33,7 +33,7 @@ sudo pip install virtualenv
 virtualenv venv
 . venv/bin/activate
 pip install --upgrade pip
-pip install lxml numpy MySQL-Python celery bcrypt flask-bcrypt flower   
+pip install lxml numpy MySQL-Python celery bcrypt flask-bcrypt flower hive-thrift-py
 pip install git+https://github.com/modsy/incubator-airflow.git@dev
 
 
@@ -69,5 +69,5 @@ Configuraion:
 2. AWS Keys Id should be URL quoted.
  
 Under SQS semantic:
-PARALLELISM is the total number of worker instances.
+PARALLELISM is the total number of concurrent tasks to run.
 Specify `queue` parameter for Operators to specify which queue to use.

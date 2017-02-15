@@ -47,7 +47,7 @@ class BaseExecutor(LoggingMixin):
     def queue_command(self, task_instance, command, priority=1, queue=None):
         key = task_instance.key
         if key not in self.queued_tasks and key not in self.running:
-            self.logger.info("Adding to queue: {}".format(command))
+            # self.logger.info("Adding to queue: {}".format(command))
             self.queued_tasks[key] = (command, priority, queue, task_instance)
 
     def queue_task_instance(
@@ -61,7 +61,7 @@ class BaseExecutor(LoggingMixin):
             ignore_ti_state=False,
             pool=None):
         pool = pool or task_instance.pool
-        command = task_instance.command(
+        command = task_instance.command_as_list(
             local=True,
             mark_success=mark_success,
             ignore_all_deps=ignore_all_deps,
