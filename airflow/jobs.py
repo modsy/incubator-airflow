@@ -522,7 +522,7 @@ class SchedulerJob(BaseJob):
                                                 'print_stats_interval')
         # Parse and schedule each file no faster than this interval. Default
         # to 3 minutes.
-        self.file_process_interval = (file_process_interval if file_process_interval else 300)
+        self.file_process_interval = (file_process_interval if file_process_interval else 180)
         # Directory where log files for the processes that scheduled the DAGs reside
         self.child_process_log_directory = conf.get('scheduler',
                                                     'child_process_log_directory')

@@ -30,3 +30,4 @@ rat-results.txt
 /.eggs/
 /.tox/
 venv
+airflow/bin/airflow.sh

@@ -24,7 +24,7 @@ New in MySQL 5.7:
 which Airflow 1.8+ is based upon, need MySQL 5.7 to make migrations work.
 
 ** Installation dependencies:
-yum install git libxml2-devel mysql55-devel
+yum install git libxml2-devel libcurl-devel
 yum groupinstall "Development Tools"
 
 
@@ -33,7 +33,7 @@ sudo pip install virtualenv
 virtualenv venv
 . venv/bin/activate
 pip install --upgrade pip
-pip install lxml numpy MySQL-Python celery bcrypt flask-bcrypt flower hive-thrift-py
+pip install lxml numpy MySQL-Python Flask celery bcrypt flask-bcrypt flower hive-thrift-py jinja2 pycurl
 pip install git+https://github.com/modsy/incubator-airflow.git@dev
 
 
@@ -71,3 +71,9 @@ Configuraion:
 Under SQS semantic:
 PARALLELISM is the total number of concurrent tasks to run.
 Specify `queue` parameter for Operators to specify which queue to use.
+
+TODO:
+1. Add new Dynamic Parameter Hook 
+ 
+2. Edit this to take Parameters and set Hook
+/airflow/www/api/experimental/endpoints.py

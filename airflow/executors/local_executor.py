@@ -35,6 +35,8 @@ class LocalWorker(multiprocessing.Process, LoggingMixin):
         self.daemon = True
 
     def run(self):
+        import sys
+        import os
         while True:
             key, command = self.task_queue.get()
             if key is None:
@@ -43,9 +45,9 @@ class LocalWorker(multiprocessing.Process, LoggingMixin):
                 break
             self.logger.info("{} running {}".format(
                 self.__class__.__name__, command))
-            command = "exec bash -c '{0}'".format(command)
+            # command = "exec bash -c '{0}'".format(command)
             try:
-                subprocess.check_call(command, shell=True)
+                subprocess.check_call([sys.executable] + command, env=os.environ.copy())
                 state = State.SUCCESS
             except subprocess.CalledProcessError as e:
                 state = State.FAILED
