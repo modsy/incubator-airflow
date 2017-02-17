@@ -31,3 +31,4 @@ rat-results.txt
 /.tox/
 venv
 airflow/bin/airflow.sh
+airflow-webserver.pid
