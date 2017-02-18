@@ -59,12 +59,20 @@ ____  /| |_  /__  ___/_  /_ __  /_  __ \_ | /| / /
 ___  ___ |  / _  /   _  __/ _  / / /_/ /_ |/ |/ /
  _/_/  |_/_/  /_/    /_/    /_/  \____/____/|__/
  """
-
 BASE_LOG_URL = '/admin/airflow/log'
-AIRFLOW_HOME = os.path.expanduser(conf.get('core', 'AIRFLOW_HOME'))
+
+BASE_LOG_FOLDER = os.getenv("BASE_LOG_FOLDER", None)
+if not BASE_LOG_FOLDER:
+    BASE_LOG_FOLDER = os.path.expanduser(conf.get('core', 'BASE_LOG_FOLDER'))
+
+AIRFLOW_HOME = os.getenv("AIRFLOW_HOME", None)
+if not AIRFLOW_HOME:
+    AIRFLOW_HOME = os.path.expanduser(conf.get('core', 'AIRFLOW_HOME'))
 SQL_ALCHEMY_CONN = conf.get('core', 'SQL_ALCHEMY_CONN')
 LOGGING_LEVEL = logging.INFO
-DAGS_FOLDER = os.path.expanduser(conf.get('core', 'DAGS_FOLDER'))
+DAGS_FOLDER = os.getenv("DAGS_FOLDER", None)
+if not DAGS_FOLDER:
+    DAGS_FOLDER = os.path.expanduser(conf.get('core', 'DAGS_FOLDER'))
 
 engine_args = {}
 if 'sqlite' not in SQL_ALCHEMY_CONN:
