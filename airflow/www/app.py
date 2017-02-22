@@ -47,6 +47,10 @@ def create_app(config=None):
 
     app.register_blueprint(ck, url_prefix='/ck')
     app.register_blueprint(routes)
+
+    from airflow.www.api.facade import api
+    app.register_blueprint(api, url_prefix='/modsy/api')
+
     app.jinja_env.add_extension("chartkick.ext.charts")
 
     with app.app_context():

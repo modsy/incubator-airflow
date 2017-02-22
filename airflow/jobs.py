@@ -384,6 +384,7 @@ class SchedulerJob(BaseJob):
         Returns DagRun if one is scheduled. Otherwise returns None.
         """
         if dag.schedule_interval:
+            self.logger.info("Schedule interval for Dag {0} is {1}".format(dag.dag_id, dag.schedule_interval))
             DagRun = models.DagRun
             session = settings.Session()
             qry = session.query(DagRun).filter(
@@ -532,7 +533,7 @@ class SchedulerJob(BaseJob):
                 could_not_run.add(ti)
 
         # this type of deadlock happens when dagruns can't even start and so
-        # the TI's haven't been persisted to the     database.
+        # the TI's haven't been persisted to the database.
         if len(could_not_run) == len(descartes) and len(could_not_run) > 0:
             self.logger.error(
                 'Dag runs are deadlocked for DAG: {}'.format(dag.dag_id))
@@ -570,8 +571,7 @@ class SchedulerJob(BaseJob):
             .filter(TI.state == State.QUEUED)
             .all()
         )
-        self.logger.info(
-            "Prioritizing {} queued jobs".format(len(queued_tis)))
+        self.logger.info("Prioritizing {} queued jobs".format(len(queued_tis)))
         session.expunge_all()
         d = defaultdict(list)
         for ti in queued_tis:
@@ -738,8 +738,7 @@ class SchedulerJob(BaseJob):
                 for j in jobs:
                     j.join()
 
-                self.logger.info("Done queuing tasks, calling the executor's "
-                              "heartbeat")
+                self.logger.info("Done queuing tasks, calling the executor's heartbeat")
                 duration_sec = (datetime.now() - loop_start_dttm).total_seconds()
                 self.logger.info("Loop took: {} seconds".format(duration_sec))
                 try:

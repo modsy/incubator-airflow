@@ -2,6 +2,8 @@
 *.bkp
 *.egg-info
 *.pyc
+*.out
+*.err
 .DS_Store
 .ipynb*
 .coverage
@@ -26,3 +28,5 @@ unittests.db
 rat-results.txt
 venv/
 *.pid
+airflow/bin/airflow.sh
+*.log

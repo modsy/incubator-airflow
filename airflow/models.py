@@ -3307,6 +3307,7 @@ class DagRun(Base):
     run_id = Column(String(ID_LEN))
     external_trigger = Column(Boolean, default=True)
     conf = Column(PickleType)
+    params = Column(PickleType)
 
     __table_args__ = (
         Index('dr_run_id', dag_id, run_id, unique=True),
