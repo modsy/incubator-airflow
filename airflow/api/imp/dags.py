@@ -20,19 +20,19 @@ def run_dag(dag_id, params=None, run_id=None, conf=None, execution_date=None):
         execution_date = datetime.datetime.now()
 
     assert isinstance(execution_date, datetime.datetime)
-    execution_date = execution_date.replace(microsecond=0)
+    # execution_date = execution_date.replace(microsecond=0)
 
     if not run_id:
         run_id = "api_{0}".format(uuid.uuid4().hex)
 
-    dr = DagRun.find(dag_id=dag_id, run_id=run_id)
+    session = airflow.settings.Session()
+    dr = session.query(DagRun).filter(DagRun.dag_id == dag_id, DagRun.run_id == run_id).first()
     if dr:
         raise AirflowException("Run id {} already exists for dag id {}".format(
             run_id,
             dag_id
         ))
 
-    session = airflow.settings.Session()
     trigger = DagRun(
             dag_id=dag_id,
             run_id=run_id,
