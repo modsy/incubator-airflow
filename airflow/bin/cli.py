@@ -215,6 +215,10 @@ def run(args, dag=None):
     task = dag.get_task(task_id=args.task_id)
 
     ti = TaskInstance(task, args.execution_date)
+    if args.ti_params:
+        passed_in_params = args.ti_params
+    else:
+        passed_in_params = None
 
     if args.local:
         print("Logging into: " + filename)
@@ -225,7 +229,8 @@ def run(args, dag=None):
             pickle_id=args.pickle,
             ignore_dependencies=args.ignore_dependencies,
             ignore_depends_on_past=args.ignore_depends_on_past,
-            pool=args.pool)
+            pool=args.pool,
+            params_jsonstr=passed_in_params)
         run_job.run()
     elif args.raw:
         ti.run(
@@ -235,6 +240,7 @@ def run(args, dag=None):
             ignore_depends_on_past=args.ignore_depends_on_past,
             job_id=args.job_id,
             pool=args.pool,
+            params_jsonstr=passed_in_params
         )
     else:
         pickle_id = None
@@ -264,7 +270,8 @@ def run(args, dag=None):
             ignore_dependencies=args.ignore_dependencies,
             ignore_depends_on_past=args.ignore_depends_on_past,
             force=args.force,
-            pool=args.pool)
+            pool=args.pool,
+            params_jsonstr=passed_in_params)
         executor.heartbeat()
         executor.end()
 
@@ -808,6 +815,9 @@ class CLIFactory(object):
         'task_params': Arg(
             ("-tp", "--task_params"),
             help="Sends a JSON params dict to the task"),
+        'ti_params': Arg(
+            ("-tip", "--ti_params"),
+            help="Sends a JSON params dict to a task run (aka a TaskInstance)."),
     }
     subparsers = (
         {
@@ -861,7 +871,7 @@ class CLIFactory(object):
                 'dag_id', 'task_id', 'execution_date', 'subdir',
                 'mark_success', 'force', 'pool',
                 'local', 'raw', 'ignore_dependencies',
-                'ignore_depends_on_past', 'ship_dag', 'pickle', 'job_id'),
+                'ignore_depends_on_past', 'ship_dag', 'pickle', 'job_id', 'ti_params'),
         }, {
             'func': initdb,
             'help': "Initialize the metadata database",

@@ -28,6 +28,9 @@ import subprocess
 import multiprocessing
 import math
 from time import sleep
+import json
+import sys
+import os
 
 from sqlalchemy import Column, Integer, String, DateTime, func, Index, or_
 from sqlalchemy.orm.session import make_transient
@@ -637,7 +640,14 @@ class SchedulerJob(BaseJob):
                     dag_blacklist.add(dag.dag_id)
                     continue
                 if ti.are_dependencies_met():
-                    executor.queue_task_instance(ti, pickle_id=pickle_id)
+                    from airflow.models import DagRun
+
+                    dagrun = session.query(DagRun).filter(
+                        DagRun.dag_id == self.dag_id,
+                        DagRun.state == State.RUNNING,
+                        DagRun.execution_date == ti.execution_date).first()
+                    executor.queue_task_instance(ti, pickle_id=pickle_id,
+                                                 params_jsonstr=json.dumps(dagrun.params) if dagrun else None)
                     open_slots -= 1
                 else:
                     session.delete(ti)
@@ -672,6 +682,7 @@ class SchedulerJob(BaseJob):
                 self.logger.exception(e)
 
     def _execute(self):
+        from airflow.models import DagRun
         TI = models.TaskInstance
 
         pessimistic_connection_handling()
@@ -733,7 +744,12 @@ class SchedulerJob(BaseJob):
                         dag = dagbag.dags[ti_key[0]]
                         task = dag.get_task(ti_key[1])
                         ti = TI(task, ti_key[2])
-                        self.executor.queue_task_instance(ti, pickle_id=pickle_id)
+                        dagrun = settings.Session().query(DagRun).filter(
+                            DagRun.dag_id == ti.dag_id,
+                            DagRun.state == State.RUNNING,
+                            DagRun.execution_date == ti.execution_date).first()
+                        self.executor.queue_task_instance(ti, pickle_id=pickle_id,
+                                                          params_jsonstr=json.dumps(dagrun.params) if dagrun else None)
 
                 for j in jobs:
                     j.join()
@@ -1040,6 +1056,7 @@ class LocalTaskJob(BaseJob):
             mark_success=False,
             pickle_id=None,
             pool=None,
+            params_jsonstr=None,
             *args, **kwargs):
         self.task_instance = task_instance
         self.ignore_dependencies = ignore_dependencies
@@ -1048,6 +1065,7 @@ class LocalTaskJob(BaseJob):
         self.pool = pool
         self.pickle_id = pickle_id
         self.mark_success = mark_success
+        self.params_jsonstr = params_jsonstr
         super(LocalTaskJob, self).__init__(*args, **kwargs)
 
     def _execute(self):
@@ -1060,8 +1078,10 @@ class LocalTaskJob(BaseJob):
             mark_success=self.mark_success,
             job_id=self.id,
             pool=self.pool,
+            params_jsonstr=self.params_jsonstr
         )
-        self.process = subprocess.Popen(['bash', '-c', command])
+        command_list = [sys.executable] + command.as_list()
+        self.process = subprocess.Popen(command_list, shell=False, env=os.environ.copy())
         return_code = None
         while return_code is None:
             self.heartbeat()

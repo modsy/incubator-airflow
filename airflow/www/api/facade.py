@@ -55,7 +55,7 @@ def trigger_dag(dag_id):
 
             return response
     try:
-        dr = run_dag(dag_id, params=None, run_id=None, conf=conf, execution_date=execution_date)
+        dr = run_dag(dag_id, params=params, run_id=None, conf=conf, execution_date=execution_date)
     except AirflowException as err:
         _log.error(err)
         response = jsonify(error="{}".format(err))
@@ -65,5 +65,5 @@ def trigger_dag(dag_id):
     if getattr(g, 'user', None):
         _log.info("User {} created {}".format(g.user, dr))
 
-    response = jsonify(message="Created {}".format(dr))
+    response = jsonify(message="Created {}".format(dr), run_id=dr.run_id)
     return response

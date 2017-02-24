@@ -623,6 +623,48 @@ class DagPickle(Base):
         self.pickle_hash = hash(dag)
         self.pickle = dag
 
+class Command(object):
+    """
+    Non-persistent model Command, used to pass to executors.
+    Always use factory method in TaskInstance, don't instantiate directly.
+    """
+    def __init__(self, dag_id, task_id, dt_iso, sd):
+        self.dag_id = dag_id
+        self.task_id = task_id
+        self.dt_iso = dt_iso
+        self.file_path = sd
+        self.mark_success = False
+        self.ignore_dependencies = False
+        self.ignore_depends_on_past = False
+        self.force = False
+        self.local = False
+        self.pickle_id = None
+        self.raw = False
+        self.job_id = None
+        self.pool = None
+        # Params will be a stringified JSON object
+        self.params = None
+        # Name of the queue
+        self.queue = 'default'
+
+    def as_str(self):
+        return " ".join(self.as_list())
+
+    def as_list(self):
+        cmd = ["airflow", "run", str(self.dag_id), str(self.task_id), str(self.dt_iso)]
+        cmd.extend(["--mark_success"]) if self.mark_success else None
+        cmd.extend(["--pickle", str(self.pickle_id)]) if self.pickle_id else None
+        cmd.extend(["--job_id", str(self.job_id)]) if self.job_id else None
+        cmd.extend(["-i"]) if self.ignore_dependencies else None
+        cmd.extend(["-I"]) if self.ignore_depends_on_past else None
+        cmd.extend(["--force"]) if self.force else None
+        cmd.extend(["--local"]) if self.local else None
+        cmd.extend(["--pool", self.pool]) if self.pool else None
+        cmd.extend(["--raw"]) if self.raw else None
+        cmd.extend(["-sd", self.file_path]) if self.file_path else None
+        cmd.extend(["-tip", self.params]) if self.params else None
+        return cmd
+
 
 class TaskInstance(Base):
     """
@@ -688,7 +730,8 @@ class TaskInstance(Base):
             pickle_id=None,
             raw=False,
             job_id=None,
-            pool=None):
+            pool=None,
+            params_jsonstr=None):
         """
         Returns a command that can be executed anywhere where airflow is
         installed. This command is part of the message sent to executors by
@@ -696,22 +739,28 @@ class TaskInstance(Base):
         """
         dag = self.task.dag
         iso = self.execution_date.isoformat()
-        cmd = "airflow run {self.dag_id} {self.task_id} {iso} "
-        cmd += "--mark_success " if mark_success else ""
-        cmd += "--pickle {pickle_id} " if pickle_id else ""
-        cmd += "--job_id {job_id} " if job_id else ""
-        cmd += "-i " if ignore_dependencies else ""
-        cmd += "-I " if ignore_depends_on_past else ""
-        cmd += "--force " if force else ""
-        cmd += "--local " if local else ""
-        cmd += "--pool {pool} " if pool else ""
-        cmd += "--raw " if raw else ""
-        if not pickle_id and dag:
-            if dag.full_filepath != dag.filepath:
-                cmd += "-sd DAGS_FOLDER/{dag.filepath} "
-            elif dag.full_filepath:
-                cmd += "-sd {dag.full_filepath}"
-        return cmd.format(**locals())
+
+        should_pass_filepath = not pickle_id and dag
+        if should_pass_filepath and dag.full_filepath != dag.filepath:
+            path = "DAGS_FOLDER/{}".format(dag.filepath)
+        elif should_pass_filepath and dag.full_filepath:
+            path = dag.full_filepath
+        else:
+            path = None
+        
+        cmd = Command(self.dag_id, self.task_id, iso, path)
+
+        cmd.mark_success = mark_success
+        cmd.ignore_dependencies = ignore_dependencies
+        cmd.ignore_depends_on_past = False
+        cmd.force = force
+        cmd.local = local
+        cmd.pickle_id = pickle_id
+        cmd.raw = raw
+        cmd.job_id = job_id
+        cmd.pool = pool
+        cmd.params = params_jsonstr
+        return cmd
 
     @property
     def log_filepath(self):
@@ -1127,7 +1176,8 @@ class TaskInstance(Base):
             test_mode=False,  # Doesn't record success or failure in the DB
             job_id=None,
             pool=None,
-            session=None):
+            session=None,
+            params_jsonstr=None):
         """
         Runs the task instance.
         """
@@ -1219,7 +1269,7 @@ class TaskInstance(Base):
                 logging.info(msg.format(self=self))
                 if not mark_success:
                     context = self.get_template_context()
-
+                    context["ti_params"] = json.loads(params_jsonstr)
                     task_copy = copy.copy(task)
                     self.task = task_copy
 

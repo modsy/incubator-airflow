@@ -7,6 +7,7 @@ from airflow.executors.sequential_executor import SequentialExecutor
 
 try:
     from airflow.executors.celery_executor import CeleryExecutor
+
 except:
     pass
 

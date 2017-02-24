@@ -44,7 +44,8 @@ class BaseExecutor(LoggingMixin):
             force=False,
             ignore_dependencies=False,
             ignore_depends_on_past=False,
-            pool=None):
+            pool=None,
+            params_jsonstr=None):
         pool = pool or task_instance.pool
         command = task_instance.command(
             local=True,
@@ -53,10 +54,15 @@ class BaseExecutor(LoggingMixin):
             ignore_dependencies=ignore_dependencies,
             ignore_depends_on_past=ignore_depends_on_past,
             pool=pool,
-            pickle_id=pickle_id)
+            pickle_id=pickle_id,
+            params_jsonstr=params_jsonstr)
+
+        if task_instance.task.queue:
+            command.queue = task_instance.task.queue
+
         self.queue_command(
             task_instance,
-            command,
+            command,    # command is a Command object
             priority=task_instance.task.priority_weight_total,
             queue=task_instance.task.queue)
 

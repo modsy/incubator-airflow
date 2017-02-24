@@ -3,7 +3,8 @@ import subprocess
 import time
 
 from builtins import range
-
+import os
+import sys
 from airflow import configuration
 from airflow.executors.base_executor import BaseExecutor
 from airflow.utils.state import State
@@ -28,10 +29,10 @@ class LocalWorker(multiprocessing.Process, LoggingMixin):
                 self.task_queue.task_done()
                 break
             self.logger.info("{} running {}".format(
-                self.__class__.__name__, command))
-            command = "exec bash -c '{0}'".format(command)
+                self.__class__.__name__, command.as_str()))
+            command_list = [sys.executable] + command.as_list()
             try:
-                subprocess.check_call(command, shell=True)
+                subprocess.check_call(command_list, shell=False, env=os.environ.copy())
                 state = State.SUCCESS
             except subprocess.CalledProcessError as e:
                 state = State.FAILED
