@@ -47,7 +47,8 @@ plugins = []
 norm_pattern = re.compile(r'[/|.]')
 
 # Crawl through the plugins folder to find AirflowPlugin derivatives
-for root, dirs, files in os.walk(plugins_folder, followlinks=True):
+# No recursive
+for root, dirs, files in [next(os.walk(plugins_folder, followlinks=True))]:
     for f in files:
         try:
             filepath = os.path.join(root, f)
@@ -55,7 +56,7 @@ for root, dirs, files in os.walk(plugins_folder, followlinks=True):
                 continue
             mod_name, file_ext = os.path.splitext(
                 os.path.split(filepath)[-1])
-            if file_ext != '.py':
+            if file_ext != '.py' or not mod_name.endswith("plugin"):
                 continue
 
             # normalize root path as namespace
