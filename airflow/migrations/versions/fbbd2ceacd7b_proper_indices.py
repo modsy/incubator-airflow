@@ -14,11 +14,20 @@ depends_on = None
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects import mysql
 
 
 def upgrade():
-    pass
-
+    op.create_table('task_instance_timeout',
+        sa.Column('id', sa.Integer(), nullable=False, autoincrement=True),
+        sa.Column('dag_id', sa.String(length=250), nullable=True),
+        sa.Column('task_id', sa.String(length=250), nullable=True),
+        sa.Column('execution_date', type_=mysql.DATETIME(fsp=6), nullable=True),
+        sa.Column('dagrun_run_id', sa.String(length=250), nullable=True),
+        sa.PrimaryKeyConstraint('id'),
+        sa.UniqueConstraint('dag_id', 'task_id', 'execution_date'),
+        sa.UniqueConstraint('dagrun_run_id'),
+    )
 
 def downgrade():
-    pass
+    op.drop_table('task_instance_timeout')
