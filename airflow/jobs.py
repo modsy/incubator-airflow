@@ -284,15 +284,30 @@ class SchedulerJob(BaseJob):
             dttm = ti.execution_date
             if task.sla:
                 dttm = dag.following_schedule(dttm)
-                while dttm < datetime.now():
-                    following_schedule = dag.following_schedule(dttm)
-                    if following_schedule + task.sla < datetime.now():
+                if dttm:
+                    while dttm < datetime.now():
+                        following_schedule = dag.following_schedule(dttm)
+                        if following_schedule + task.sla < datetime.now():
+                            session.merge(models.SlaMiss(
+                                task_id=ti.task_id,
+                                dag_id=ti.dag_id,
+                                execution_date=dttm,
+                                timestamp=ts))
+                        dttm = dag.following_schedule(dttm)
+                else:
+                    from airflow.models import DagRun
+                    dagrun = settings.Session().query(DagRun).filter(
+                        DagRun.dag_id == ti.dag_id,
+                        DagRun.execution_date == ti.execution_date).first()
+                    desc = dagrun.run_id if dagrun else ""
+                    if (ti.end_date - ti.start_date).total_seconds() > task.sla:
                         session.merge(models.SlaMiss(
                             task_id=ti.task_id,
                             dag_id=ti.dag_id,
-                            execution_date=dttm,
+                            execution_date=ti.execution_date,
+                            description=desc,
                             timestamp=ts))
-                    dttm = dag.following_schedule(dttm)
+
         session.commit()
 
         slas = (
