@@ -49,7 +49,8 @@ class S3Log(object):
         try:
             from airflow.hooks import S3Hook
             self.hook = S3Hook(remote_conn_id)
-        except:
+        except Exception as e:
+            logging.error(str(e))
             self.hook = None
             logging.error(
                 'Could not create an S3Hook with connection id "{}". '
