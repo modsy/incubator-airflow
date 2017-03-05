@@ -532,6 +532,20 @@ def initdb(args):  # noqa
     print("Done.")
 
 
+def inituser(args):
+    from airflow import models, settings
+    from airflow.contrib.auth.backends.password_auth import PasswordUser
+    print("Refreshing User from Environment variable: MCP_ADMIN_USERNAME and MCP_ADMIN_PASSWORD")
+    user = PasswordUser(models.User())
+    user.username = os.getenv('MCP_ADMIN_USERNAME', 'admin')
+    user.email = "jeffrey@modsy.com"
+    user.password = os.getenv('MCP_ADMIN_PASSWORD','1234')
+    session = settings.Session()
+    session.add(user)
+    session.commit()
+    session.close()
+
+
 def resetdb(args):
     print("DB: " + repr(settings.engine.url))
     if args.yes or input(
@@ -928,6 +942,10 @@ class CLIFactory(object):
         }, {
             'func': version,
             'help': "Show the version",
+            'args': tuple(),
+        }, {
+            'func': inituser,
+            'help': "Reinitialize user from environment variables: MCP_ADMIN_USERNAME and MCP_ADMIN_PASSWORD.",
             'args': tuple(),
         },
     )

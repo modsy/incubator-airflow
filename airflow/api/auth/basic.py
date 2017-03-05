@@ -3,9 +3,11 @@ from flask import request, Response
 
 
 def check_auth(username, password):
+    import os
     """This function is called to check if a username password combination is valid.
     """
-    return username == 'admin' and password == '1234'
+    print username, password
+    return username == os.getenv('MCP_ADMIN_USERNAME','admin') and password == os.getenv('MCP_ADMIN_PASSWORD','1234')
 
 
 def authenticate():
