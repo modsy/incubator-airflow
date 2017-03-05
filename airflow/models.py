@@ -3446,6 +3446,29 @@ class SlaMiss(Base):
             self.dag_id, self.task_id, self.execution_date.isoformat()))
 
 
+class TaskInstanceTimeout(Base):
+
+    __tablename__ = "task_instance_timeout"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    dag_id = Column(String(ID_LEN), primary_key=True)
+    task_id = Column(String(ID_LEN), primary_key=True)
+    execution_date = Column(DateTime, primary_key=True)
+    dagrun_run_id = Column(String(ID_LEN), primary_key=True)
+
+    def __init__(self, dag_id, task_id, execution_date, dagrun_run_id=""):
+        self.dag_id = dag_id
+        self.task_id = task_id
+        self.execution_date = execution_date
+        self.dagrun_run_id = dagrun_run_id
+
+    @provide_session
+    def save(self, session=None):
+        if self.id is None:
+            session.add(self)
+        session.commit()
+
+
 class ImportError(Base):
     __tablename__ = "import_error"
     id = Column(Integer, primary_key=True)
