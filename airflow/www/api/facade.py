@@ -24,7 +24,7 @@ def test():
 
 
 @csrf.exempt
-@api.route('/dags/<string:dag_id>', methods=['POST'])
+@api.route('/dagruns/<string:dag_id>', methods=['POST'])
 @requires_auth
 def trigger_dag(dag_id):
     """

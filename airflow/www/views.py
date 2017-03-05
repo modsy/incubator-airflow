@@ -149,6 +149,14 @@ def datetime_f(v, c, m, p):
     return Markup("<nobr>{}</nobr>".format(dttm))
 
 
+def params_f(v, c, m, p):
+    attr = getattr(m, p)
+    if attr:
+        return Markup("<nobr>{}</nobr>".format(attr))
+    else:
+        return Markup("None")
+
+
 def nobr_f(v, c, m, p):
     return Markup("<nobr>{}</nobr>".format(getattr(m, p)))
 
@@ -1845,7 +1853,7 @@ class SlaMissModelView(wwwutils.SuperUserMixin, ModelViewOnly):
     verbose_name_plural = "SLA misses"
     verbose_name = "SLA miss"
     column_list = (
-        'dag_id', 'task_id', 'execution_date', 'email_sent', 'timestamp')
+        'dag_id', 'task_id', 'execution_date', 'description', 'email_sent', 'timestamp')
     column_formatters = dict(
         task_id=task_instance_link,
         execution_date=datetime_f,
@@ -1854,11 +1862,12 @@ class SlaMissModelView(wwwutils.SuperUserMixin, ModelViewOnly):
     named_filter_urls = True
     column_searchable_list = ('dag_id', 'task_id',)
     column_filters = (
-        'dag_id', 'task_id', 'email_sent', 'timestamp', 'execution_date')
+        'dag_id', 'task_id', 'email_sent', 'timestamp', 'execution_date', 'description')
     form_widget_args = {
         'email_sent': {'disabled': True},
         'timestamp': {'disabled': True},
     }
+
 
 class ChartModelView(wwwutils.DataProfilingMixin, AirflowModelView):
     verbose_name = "chart"
@@ -2028,8 +2037,8 @@ class JobModelView(ModelViewOnly):
 class DagRunModelView(ModelViewOnly):
     verbose_name_plural = "DAG Runs"
     can_delete = True
-    can_edit = True
-    can_create = True
+    can_edit = False
+    can_create = False
     column_editable_list = ('state',)
     verbose_name = "dag run"
     column_default_sort = ('execution_date', True)
@@ -2041,14 +2050,15 @@ class DagRunModelView(ModelViewOnly):
         ],
     }
     column_list = (
-        'state', 'dag_id', 'execution_date', 'run_id', 'external_trigger')
-    column_filters = column_list
-    column_searchable_list = ('dag_id', 'state', 'run_id')
+        'state', 'dag_id', 'execution_date', 'run_id', 'params', 'external_trigger')
+    column_filters = ('state', 'dag_id', 'execution_date', 'run_id', 'external_trigger')
+    column_searchable_list = ('dag_id', 'state', 'run_id', 'params')
     column_formatters = dict(
         execution_date=datetime_f,
         state=state_f,
         start_date=datetime_f,
-        dag_id=dag_link)
+        dag_id=dag_link,
+        params=params_f)
 
     @action('set_running', "Set state to 'running'", None)
     def action_set_running(self, ids):
@@ -2119,9 +2129,9 @@ class TaskInstanceModelView(ModelViewOnly):
     }
     column_list = (
         'state', 'dag_id', 'task_id', 'execution_date', 'operator',
-        'start_date', 'end_date', 'duration', 'job_id', 'hostname',
+        'start_date', 'end_date', 'duration', 'log', 'hostname', 'job_id',
         'unixname', 'priority_weight', 'queue', 'queued_dttm', 'try_number',
-        'pool', 'log')
+        'pool')
     can_delete = True
     page_size = 500
 
