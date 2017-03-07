@@ -1265,6 +1265,7 @@ class TaskInstance(Base):
                 msg += "{self.task} on {self.execution_date}"
 
             context = {}
+            INTERRUPTS = [signal.SIGTERM, signal.SIGSTOP, signal.SIGKILL, signal.SIGABRT]
             try:
                 logging.info(msg.format(self=self))
                 if not mark_success:
@@ -1277,8 +1278,9 @@ class TaskInstance(Base):
                         '''Setting kill signal handler'''
                         logging.error("Killing subprocess")
                         task_copy.on_kill()
-                        raise AirflowException("Task received SIGTERM signal")
-                    signal.signal(signal.SIGTERM, signal_handler)
+                        raise AirflowException("{signum}: Interrupted.".format(signum=signum))
+                    for sig in INTERRUPTS:
+                        signal.signal(sig, signal_handler)
 
                     self.render_templates()
                     task_copy.pre_execute(context=context)
@@ -1305,6 +1307,9 @@ class TaskInstance(Base):
             except (Exception, KeyboardInterrupt) as e:
                 self.handle_failure(e, test_mode, context)
                 raise
+            finally:
+                for sig in INTERRUPTS:
+                    signal.signal(sig, signal.SIG_IGN)
 
             # Recording SUCCESS
             self.end_date = datetime.now()
