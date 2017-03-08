@@ -1265,7 +1265,11 @@ class TaskInstance(Base):
                 msg += "{self.task} on {self.execution_date}"
 
             context = {}
-            INTERRUPTS = [signal.SIGTERM, signal.SIGSTOP, signal.SIGKILL, signal.SIGABRT]
+            INTERRUPTS = (signal.SIGABRT,
+                          signal.SIGINT,
+                          signal.SIGQUIT,
+                          signal.SIGTERM,
+                          signal.SIGTSTP)
             try:
                 logging.info(msg.format(self=self))
                 if not mark_success:
