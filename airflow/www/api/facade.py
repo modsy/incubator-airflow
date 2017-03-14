@@ -17,9 +17,8 @@ requires_auth = airflow.api.auth.basic.requires_auth
 
 
 @api.route('/test', methods=['GET'])
-@requires_auth
 def test():
-    response = jsonify({'message':'test succeeded.'})
+    response = jsonify({'message': 'test succeeded.'})
     return response
 
 
