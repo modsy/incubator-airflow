@@ -1274,7 +1274,7 @@ class TaskInstance(Base):
                 logging.info(msg.format(self=self))
                 if not mark_success:
                     context = self.get_template_context()
-                    context["ti_params"] = json.loads(params_jsonstr)
+                    context["ti_params"] = json.loads(params_jsonstr) if params_jsonstr else {}
                     task_copy = copy.copy(task)
                     self.task = task_copy
 
