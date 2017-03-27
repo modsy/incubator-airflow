@@ -241,6 +241,19 @@ def upgrade():
             sa.PrimaryKeyConstraint('id')
         )
 
+    if 'task_fail' not in tables:
+        op.create_table(
+            'task_fail',
+            sa.Column('id', sa.Integer(), nullable=False),
+            sa.Column('task_id', sa.String(length=250), nullable=False),
+            sa.Column('dag_id', sa.String(length=250), nullable=False),
+            sa.Column('execution_date', sa.DateTime(), nullable=False),
+            sa.Column('start_date', sa.DateTime(), nullable=True),
+            sa.Column('end_date', sa.DateTime(), nullable=True),
+            sa.Column('duration', sa.Integer(), nullable=True),
+            sa.PrimaryKeyConstraint('id'),
+        )
+
 
 def downgrade():
     op.drop_table('known_event')
@@ -262,3 +275,4 @@ def downgrade():
     op.drop_table('dag')
     op.drop_table('connection')
     op.drop_table('xcom')
+    op.drop_table('task_fail')
