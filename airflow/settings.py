@@ -69,7 +69,7 @@ AIRFLOW_HOME = os.getenv("AIRFLOW_HOME", None)
 if not AIRFLOW_HOME:
     AIRFLOW_HOME = os.path.expanduser(conf.get('core', 'AIRFLOW_HOME'))
 SQL_ALCHEMY_CONN = conf.get('core', 'SQL_ALCHEMY_CONN')
-LOGGING_LEVEL = logging.INFO
+LOGGING_LEVEL = os.getenv('AIRFLOW__LOGGING_LEVEL', logging.WARN)
 DAGS_FOLDER = os.getenv("DAGS_FOLDER", None)
 if not DAGS_FOLDER:
     DAGS_FOLDER = os.path.expanduser(conf.get('core', 'DAGS_FOLDER'))
@@ -119,9 +119,15 @@ def policy(task_instance):
 
 
 def configure_logging():
-    logging.root.handlers = []
+    root = logging.getLogger()
+    root.handlers = []
     logging.basicConfig(
         format=LOG_FORMAT, stream=sys.stdout, level=LOGGING_LEVEL)
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(LOG_FORMAT)
+
+    root.addHandler(handler)
 
 try:
     from airflow_local_settings import *

@@ -41,8 +41,9 @@ def trigger_dag(dag_id):
 
         # Convert string datetime into actual datetime (now)
         try:
-            execution_date = datetime.strptime(execution_date,
-                                               '%Y-%m-%dT%H:%M:%S')
+            d = datetime.strptime(execution_date, '%Y-%m-%dT%H:%M:%S')
+            execution_date = datetime(year=d.year, month=d.month, day=d.day, hour=d.hour, minute=d.minute,
+                                      second=d.second, microsecond=datetime.now().microsecond)
         except ValueError:
             error_message = (
                 'Given execution date, {}, could not be identified '

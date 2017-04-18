@@ -34,4 +34,4 @@ else:
     else:
         raise AirflowException("Executor {0} not supported.".format(_EXECUTOR))
 
-logging.info("Using executor " + _EXECUTOR)
+logging.getLogger().info("Using executor " + _EXECUTOR)

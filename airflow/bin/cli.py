@@ -432,7 +432,7 @@ def webserver(args):
 
 
 def scheduler(args):
-    print(settings.HEADER)
+    # print(settings.HEADER)
     job = jobs.SchedulerJob(
         dag_id=args.dag_id,
         subdir=process_subdir(args.subdir),
