@@ -5,7 +5,7 @@ import os
 import sys
 
 # Kept manually in sync with airflow.__version__
-version = '1.7.6'
+version = '1.7.7'
 
 
 class Tox(TestCommand):

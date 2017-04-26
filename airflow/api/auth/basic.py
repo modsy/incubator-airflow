@@ -6,7 +6,6 @@ def check_auth(username, password):
     import os
     """This function is called to check if a username password combination is valid.
     """
-    print username, password
     return username == os.getenv('MCP_ADMIN_USERNAME','admin') and password == os.getenv('MCP_ADMIN_PASSWORD','1234')
 
 
