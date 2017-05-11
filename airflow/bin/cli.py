@@ -538,10 +538,17 @@ def inituser(args):
     print("Refreshing User from Environment variable: MCP_ADMIN_USERNAME and MCP_ADMIN_PASSWORD")
     user = PasswordUser(models.User())
     user.username = os.getenv('MCP_ADMIN_USERNAME', 'admin')
-    user.email = "jeffrey@modsy.com"
-    user.password = os.getenv('MCP_ADMIN_PASSWORD','1234')
+    user.email = "engineering@modsy.com"
+    plain_text_pass = os.getenv('MCP_ADMIN_PASSWORD', '1234')
+    user.password = plain_text_pass
     session = settings.Session()
-    session.add(user)
+    obj = session.query(PasswordUser).filter(PasswordUser.username == user.username).first()
+    if obj:
+        obj.password = plain_text_pass
+        print("Changing password for existing user {0}".format(user.username))
+    else:
+        print("Adding new user: {0}".format(user.username))
+        session.add(user)
     session.commit()
     session.close()
 
