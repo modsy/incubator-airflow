@@ -968,6 +968,8 @@ class Airflow(BaseView):
     @wwwutils.action_logging
     @wwwutils.notify_owner
     def run(self):
+        # TODO: This is not really working. The jobs doesn't get recorded in database.
+        from airflow.executors import DEFAULT_EXECUTOR as executor
         dag_id = request.args.get('dag_id')
         task_id = request.args.get('task_id')
         origin = request.args.get('origin')
@@ -978,17 +980,6 @@ class Airflow(BaseView):
         execution_date = dateutil.parser.parse(execution_date)
         force = request.args.get('force') == "true"
         deps = request.args.get('deps') == "true"
-
-        try:
-            from airflow.executors import DEFAULT_EXECUTOR as executor
-            from airflow.executors import CeleryExecutor
-            if not isinstance(executor, CeleryExecutor):
-                flash("Only works with the CeleryExecutor, sorry", "error")
-                return redirect(origin)
-        except ImportError:
-            # in case CeleryExecutor cannot be imported it is not active either
-            flash("Only works with the CeleryExecutor, sorry", "error")
-            return redirect(origin)
 
         ti = models.TaskInstance(task=task, execution_date=execution_date)
         executor.start()

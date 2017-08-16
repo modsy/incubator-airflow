@@ -5,7 +5,7 @@ import os
 import sys
 
 # Kept manually in sync with airflow.__version__
-version = '1.7.7'
+version = '1.7.8'
 
 
 class Tox(TestCommand):
@@ -114,7 +114,7 @@ setup(
     zip_safe=False,
     scripts=['airflow/bin/airflow'],
     install_requires=[
-        'alembic>=0.8.3, <0.9',
+        'alembic>=0.8.3',
         'babel>=1.3, <2.0',
         'chartkick>=0.4.2, < 0.5',
         'croniter>=0.3.8, <0.4',

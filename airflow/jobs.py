@@ -300,7 +300,7 @@ class SchedulerJob(BaseJob):
                         DagRun.dag_id == ti.dag_id,
                         DagRun.execution_date == ti.execution_date).first()
                     desc = dagrun.run_id if dagrun else ""
-                    if (ti.end_date - ti.start_date).total_seconds() > task.sla:
+                    if ti.end_date - ti.start_date > task.sla:
                         session.merge(models.SlaMiss(
                             task_id=ti.task_id,
                             dag_id=ti.dag_id,
