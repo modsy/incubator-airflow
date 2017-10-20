@@ -32,6 +32,8 @@ DAGS_FOLDER = os.path.expanduser(conf.get('core', 'DAGS_FOLDER'))
 
 
 def sigint_handler(signal, frame):
+    from ..settings import safe_engine_dispose
+    safe_engine_dispose()
     sys.exit(0)
 
 

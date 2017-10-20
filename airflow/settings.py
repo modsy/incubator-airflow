@@ -129,6 +129,14 @@ def configure_logging():
 
     root.addHandler(handler)
 
+
+def safe_engine_dispose():
+    try:
+        engine.dispose()
+    except Exception as e:
+        logging.error(str(e))
+
+
 try:
     from airflow_local_settings import *
     logging.info("Loaded airflow_local_settings.")

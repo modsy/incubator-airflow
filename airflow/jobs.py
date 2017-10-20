@@ -684,6 +684,10 @@ class SchedulerJob(BaseJob):
         """
         Iterates over the dags and schedules and processes them
         """
+        from .settings import safe_engine_dispose
+
+        safe_engine_dispose()
+
         for dag in dags:
             self.logger.debug("Scheduling {}".format(dag.dag_id))
             dag = dagbag.get_dag(dag.dag_id)
@@ -695,6 +699,8 @@ class SchedulerJob(BaseJob):
                 self.manage_slas(dag)
             except Exception as e:
                 self.logger.exception(e)
+
+        safe_engine_dispose()
 
     def _execute(self):
         from airflow.models import DagRun
