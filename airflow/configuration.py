@@ -697,6 +697,6 @@ def set(section, option, value):  # noqa
 def get_dags_folder():
     return os.path.expanduser(get('core', 'DAGS_FOLDER'))
 
-logging.getLogger("airflow").setLevel(logging.INFO)
+logging.getLogger("airflow").setLevel(logging.WARN)
 
 
