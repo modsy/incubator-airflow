@@ -32,8 +32,7 @@ DAGS_FOLDER = os.path.expanduser(conf.get('core', 'DAGS_FOLDER'))
 
 
 def sigint_handler(signal, frame):
-    from ..settings import safe_engine_dispose
-    safe_engine_dispose()
+    settings.safe_engine_dispose()
     sys.exit(0)
 
 
@@ -462,6 +461,7 @@ def scheduler(args):
         signal.signal(signal.SIGINT, sigint_handler)
         signal.signal(signal.SIGTERM, sigint_handler)
         job.run()
+    settings.safe_engine_dispose()
 
 
 def serve_logs(args):
