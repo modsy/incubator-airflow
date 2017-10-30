@@ -15,10 +15,11 @@
 
 import datetime
 import ftplib
-import logging
 import os.path
 from airflow.hooks.base_hook import BaseHook
 from past.builtins import basestring
+
+from airflow.utils.log.logging_mixin import LoggingMixin
 
 
 def mlsd(conn, path="", facts=None):
@@ -54,7 +55,7 @@ def mlsd(conn, path="", facts=None):
         yield (name, entry)
 
 
-class FTPHook(BaseHook):
+class FTPHook(BaseHook, LoggingMixin):
     """
     Interact with FTP.
 
@@ -166,10 +167,9 @@ class FTPHook(BaseHook):
 
         remote_path, remote_file_name = os.path.split(remote_full_path)
         conn.cwd(remote_path)
-        logging.info('Retrieving file from FTP: {}'.format(remote_full_path))
+        self.log.info('Retrieving file from FTP: %s', remote_full_path)
         conn.retrbinary('RETR %s' % remote_file_name, output_handle.write)
-        logging.info('Finished retrieving file from FTP: {}'.format(
-            remote_full_path))
+        self.log.info('Finished retrieving file from FTP: %s', remote_full_path)
 
         if is_path:
             output_handle.close()
@@ -226,7 +226,12 @@ class FTPHook(BaseHook):
     def get_mod_time(self, path):
         conn = self.get_conn()
         ftp_mdtm = conn.sendcmd('MDTM ' + path)
-        return datetime.datetime.strptime(ftp_mdtm[4:], '%Y%m%d%H%M%S')
+        time_val = ftp_mdtm[4:]
+        # time_val optionally has microseconds
+        try:
+            return datetime.datetime.strptime(time_val, "%Y%m%d%H%M%S.%f")
+        except ValueError:
+            return datetime.datetime.strptime(time_val, '%Y%m%d%H%M%S')
 
 
 class FTPSHook(FTPHook):
@@ -237,7 +242,12 @@ class FTPSHook(FTPHook):
         """
         if self.conn is None:
             params = self.get_connection(self.ftp_conn_id)
+
+            if params.port:
+               ftplib.FTP_TLS.port=params.port
+
             self.conn = ftplib.FTP_TLS(
                 params.host, params.login, params.password
             )
+
         return self.conn

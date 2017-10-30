@@ -29,16 +29,16 @@ class NotInRetryPeriodDep(BaseTIDep):
             yield self._passing_status(
                 reason="The context specified that being in a retry period was "
                        "permitted.")
-            raise StopIteration
+            return
 
         if ti.state != State.UP_FOR_RETRY:
             yield self._passing_status(
                 reason="The task instance was not marked for retrying.")
-            raise StopIteration
+            return
 
         # Calculate the date first so that it is always smaller than the timestamp used by
         # ready_for_retry
-        cur_date = datetime.now()
+        cur_date = datetime.utcnow()
         next_task_retry_date = ti.next_retry_datetime()
         if ti.is_premature:
             yield self._failing_status(

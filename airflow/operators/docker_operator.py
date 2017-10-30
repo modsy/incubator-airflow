@@ -13,12 +13,12 @@
 # limitations under the License.
 
 import json
-import logging
+
 from airflow.exceptions import AirflowException
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
 from airflow.utils.file import TemporaryDirectory
-from docker import Client, tls
+from docker import APIClient as Client, tls
 import ast
 
 
@@ -70,6 +70,9 @@ class DockerOperator(BaseOperator):
     :type user: int or str
     :param volumes: List of volumes to mount into the container, e.g.
         ``['/host/path:/container/path', '/host/path2:/container/path2:ro']``.
+    :param working_dir: Working directory to set on the container (equivalent to the -w switch
+        the docker client)
+    :type working_dir: str
     :param xcom_push: Does the stdout will be pushed to the next step using XCom.
            The default is False.
     :type xcom_push: bool
@@ -99,6 +102,7 @@ class DockerOperator(BaseOperator):
             tmp_dir='/tmp/airflow',
             user=None,
             volumes=None,
+            working_dir=None,
             xcom_push=False,
             xcom_all=False,
             *args,
@@ -122,14 +126,15 @@ class DockerOperator(BaseOperator):
         self.tmp_dir = tmp_dir
         self.user = user
         self.volumes = volumes or []
-        self.xcom_push = xcom_push
+        self.working_dir = working_dir
+        self.xcom_push_flag = xcom_push
         self.xcom_all = xcom_all
 
         self.cli = None
         self.container = None
 
     def execute(self, context):
-        logging.info('Starting docker container from image ' + self.image)
+        self.log.info('Starting docker container from image %s', self.image)
 
         tls_config = None
         if self.tls_ca_cert and self.tls_client_cert and self.tls_client_key:
@@ -150,10 +155,10 @@ class DockerOperator(BaseOperator):
             image = self.image
 
         if self.force_pull or len(self.cli.images(name=image)) == 0:
-            logging.info('Pulling docker image ' + image)
+            self.log.info('Pulling docker image %s', image)
             for l in self.cli.pull(image, stream=True):
                 output = json.loads(l.decode('utf-8'))
-                logging.info("{}".format(output['status']))
+                self.log.info("%s", output['status'])
 
         cpu_shares = int(round(self.cpus * 1024))
 
@@ -169,20 +174,24 @@ class DockerOperator(BaseOperator):
                                                             network_mode=self.network_mode),
                     image=image,
                     mem_limit=self.mem_limit,
-                    user=self.user
+                    user=self.user,
+                    working_dir=self.working_dir
             )
             self.cli.start(self.container['Id'])
 
             line = ''
             for line in self.cli.logs(container=self.container['Id'], stream=True):
-                logging.info("{}".format(line.strip()))
+                line = line.strip()
+                if hasattr(line, 'decode'):
+                    line = line.decode('utf-8')
+                self.log.info(line)
 
             exit_code = self.cli.wait(self.container['Id'])
             if exit_code != 0:
                 raise AirflowException('docker container failed')
 
-            if self.xcom_push:
-                return self.cli.logs(container=self.container['Id']) if self.xcom_all else str(line.strip())
+            if self.xcom_push_flag:
+                return self.cli.logs(container=self.container['Id']) if self.xcom_all else str(line)
 
     def get_command(self):
         if self.command is not None and self.command.strip().find('[') == 0:
@@ -193,5 +202,5 @@ class DockerOperator(BaseOperator):
 
     def on_kill(self):
         if self.cli is not None:
-            logging.info('Stopping docker container')
+            self.log.info('Stopping docker container')
             self.cli.stop(self.container['Id'])

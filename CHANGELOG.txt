@@ -1,6 +1,125 @@
-AIRFLOW 1.8.0, 2017-02-02
+AIRFLOW 1.8.2, 2017-09-04
 -------------------------
 
+9a53e66 [AIRFLOW-809][AIRFLOW-1] Use __eq__ ColumnOperator When Testing Booleans
+333e0b3 [AIRFLOW-1296] Propagate SKIPPED to all downstream tasks
+93825d5 Re-enable caching for hadoop components
+33a9dcb Pin Hive and Hadoop to a specific version and create writable warehouse dir
+7cff6cd [AIRFLOW-1308] Disable nanny usage for Dask
+c6a09c4 Updating CHANGELOG for 1.8.2rc1
+570b2ed [AIRFLOW-1294] Backfills can loose tasks to execute
+3f48d48 [AIRFLOW-1291] Update NOTICE and LICENSE files to match ASF requirements
+e10af9a [AIRFLOW-XXX] Set version to 1.8.2rc1
+69bd269 [AIRFLOW-1160] Update Spark parameters for Mesos
+9692510 [AIRFLOW 1149][AIRFLOW-1149] Allow for custom filters in Jinja2 templates
+6de5330 [AIRFLOW-1119] Fix unload query so headers are on first row[]
+b4e9eb8 [AIRFLOW-1089] Add Spark application arguments
+a4083f3 [AIRFLOW-1078] Fix latest_runs endpoint for old flask versions
+7a02841 [AIRFLOW-1074] Don't count queued tasks for concurrency limits
+a2c18a5 [AIRFLOW-1064] Change default sort to job_id for TaskInstanceModelView
+d1c64ab [AIRFLOW-1038] Specify celery serialization options explicitly
+b4ee88a [AIRFLOW-1036] Randomize exponential backoff
+9fca409 [AIRFLOW-993] Update date inference logic
+272c2f5 [AIRFLOW-1167] Support microseconds in FTPHook modification time
+c7c0b72 [AIRFLOW-1179] Fix Pandas 0.2x breaking Google BigQuery change
+acd0166 [AIRFLOW-1263] Dynamic height for charts
+7f33f6e [AIRFLOW-1266] Increase width of gantt y axis
+fc33c04 [AIRFLOW-1290] set docs author to 'Apache Airflow'
+2e9eee3 [AIRFLOW-1282] Fix known event column sorting
+2389a8a [AIRFLOW-1166] Speed up _change_state_for_tis_without_dagrun
+bf966e6 [AIRFLOW-1192] Some enhancements to qubole_operator
+57d5bcd [AIRFLOW-1281] Sort variables by key field by default
+802fc15 [AIRFLOW-1244] Forbid creation of a pool with empty name
+1232b6a [AIRFLOW-1243] DAGs table has no default entries to show
+b0ba3c9 [AIRFLOW-1227] Remove empty column on the Logs view
+c406652 [AIRFLOW-1226] Remove empty column on the Jobs view
+51a83cc [AIRFLOW-1199] Fix create modal
+cac7d4c [AIRFLOW-1200] Forbid creation of a variable with an empty key
+5f3ee52 [AIRFLOW-1186] Sort dag.get_task_instances by execution_date
+f446c08 [AIRFLOW-1145] Fix closest_date_partition function with before set to True If we're looking for the closest date before, we should take the latest date in the list of date before.
+93b8e96 [AIRFLOW-1180] Fix flask-wtf version for test_csrf_rejection
+bb56805 [AIRFLOW-1170] DbApiHook insert_rows inserts parameters separately
+093b2f0 [AIRFLOW-1150] Fix scripts execution in sparksql hook[]
+777f181 [AIRFLOW-1168] Add closing() to all connections and cursors
+bc8e912 [AIRFLOW-XXX] Updating CHANGELOG, README, and UPDATING after 1.8.1 release
+
+AIRFLOW 1.8.1, 2017-05-09
+-------------------------
+
+[AIRFLOW-1142] SubDAG Tasks Not Executed Even Though All Dependencies Met
+[AIRFLOW-1138] Add licenses to files in scripts directory
+[AIRFLOW-1127] Move license notices to LICENSE instead of NOTICE
+[AIRFLOW-1124] Do not set all task instances to scheduled on backfill
+[AIRFLOW-1120] Update version view to include Apache prefix
+[AIRFLOW-1062] DagRun#find returns wrong result if external_trigger=False is specified
+[AIRFLOW-1054] Fix broken import on test_dag
+[AIRFLOW-1050] Retries ignored - regression
+[AIRFLOW-1033] TypeError: can't compare datetime.datetime to None
+[AIRFLOW-1017] get_task_instance should return None instead of throw an exception for non-existent TIs
+[AIRFLOW-1011] Fix bug in BackfillJob._execute() for SubDAGs
+[AIRFLOW-1004] `airflow webserver -D` runs in foreground
+[AIRFLOW-1001] Landing Time shows "unsupported operand type(s) for -: 'datetime.datetime' and 'NoneType'" on example_subdag_operator
+[AIRFLOW-1000] Rebrand to Apache Airflow instead of Airflow
+[AIRFLOW-989] Clear Task Regression
+[AIRFLOW-974] airflow.util.file mkdir has a race condition
+[AIRFLOW-906] Update Code icon from lightning bolt to file
+[AIRFLOW-858] Configurable database name for DB operators
+[AIRFLOW-853] ssh_execute_operator.py stdout decode default to ASCII
+[AIRFLOW-832] Fix debug server
+[AIRFLOW-817] Trigger dag fails when using CLI + API
+[AIRFLOW-816] Make sure to pull nvd3 from local resources
+[AIRFLOW-815] Add previous/next execution dates to available default variables.
+[AIRFLOW-813] Fix unterminated unit tests in tests.job (tests/job.py)
+[AIRFLOW-812] Scheduler job terminates when there is no dag file
+[AIRFLOW-806] UI should properly ignore DAG doc when it is None
+[AIRFLOW-794] Consistent access to DAGS_FOLDER and SQL_ALCHEMY_CONN
+[AIRFLOW-785] ImportError if cgroupspy is not installed
+[AIRFLOW-784] Cannot install with funcsigs > 1.0.0
+[AIRFLOW-780] The UI no longer shows broken DAGs
+[AIRFLOW-777] dag_is_running is initlialized to True instead of False
+[AIRFLOW-719] Skipped operations make DAG finish prematurely
+[AIRFLOW-694] Empty env vars do not overwrite non-empty config values
+[AIRFLOW-492] Insert into dag_stats table results into failed task while task itself succeeded
+[AIRFLOW-139] Executing VACUUM with PostgresOperator
+[AIRFLOW-111] DAG concurrency is not honored
+[AIRFLOW-88] Improve clarity Travis CI reports
+
+AIRFLOW 1.8.0, 2017-03-12
+-------------------------
+
+[AIRFLOW-900] Double trigger should not kill original task instance
+[AIRFLOW-900] Fixes bugs in LocalTaskJob for double run protection
+[AIRFLOW-932] Do not mark tasks removed when backfilling
+[AIRFLOW-961] run onkill when SIGTERMed
+[AIRFLOW-910] Use parallel task execution for backfills
+[AIRFLOW-967] Wrap strings in native for py2 ldap compatibility
+[AIRFLOW-941] Use defined parameters for psycopg2
+[AIRFLOW-719] Prevent DAGs from ending prematurely
+[AIRFLOW-938] Use test for True in task_stats queries
+[AIRFLOW-937] Improve performance of task_stats
+[AIRFLOW-933] use ast.literal_eval rather eval because ast.literal_eval does not execute input.
+[AIRFLOW-925] Revert airflow.hooks change that cherry-pick picked
+[AIRFLOW-919] Running tasks with no start date shouldn't break a DAGs UI
+[AIRFLOW-802] Add spark-submit operator/hook
+[AIRFLOW-897] Prevent dagruns from failing with unfinished tasks
+[AIRFLOW-861] make pickle_info endpoint be login_required
+[AIRFLOW-853] use utf8 encoding for stdout line decode
+[AIRFLOW-856] Make sure execution date is set for local client
+[AIRFLOW-830][AIRFLOW-829][AIRFLOW-88] Reduce Travis log verbosity
+[AIRFLOW-831] Restore import to fix broken tests
+[AIRFLOW-794] Access DAGS_FOLDER and SQL_ALCHEMY_CONN exclusively from settings
+[AIRFLOW-694] Fix config behaviour for empty envvar
+[AIRFLOW-365] Set dag.fileloc explicitly and use for Code view
+[AIRFLOW-931] Do not set QUEUED in TaskInstances
+[AIRFLOW-899] Tasks in SCHEDULED state should be white in the UI instead of black
+[AIRFLOW-895] Address Apache release incompliancies
+[AIRFLOW-893][AIRFLOW-510] Fix crashing webservers when a dagrun has no start date
+[AIRFLOW-793] Enable compressed loading in S3ToHiveTransfer
+[AIRFLOW-863] Example DAGs should have recent start dates
+[AIRFLOW-869] Refactor mark success functionality
+[AIRFLOW-856] Make sure execution date is set for local client
+[AIRFLOW-814] Fix Presto*CheckOperator.__init__
+[AIRFLOW-844] Fix cgroups directory creation
 [AIRFLOW-816] Use static nvd3 and d3
 [AIRFLOW-821] Fix py3 compatibility
 [AIRFLOW-817] Check for None value of execution_date in endpoint

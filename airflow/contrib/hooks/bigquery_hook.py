@@ -18,13 +18,12 @@ This module contains a BigQuery Hook, as well as a very basic PEP 249
 implementation for BigQuery.
 """
 
-import logging
 import time
 
 from apiclient.discovery import build, HttpError
 from googleapiclient import errors
 from builtins import range
-from pandas.io.gbq import GbqConnector, \
+from pandas_gbq.gbq import GbqConnector, \
     _parse_data as gbq_parse_data, \
     _check_google_client_version as gbq_check_google_client_version, \
     _test_google_api_imports as gbq_test_google_api_imports
@@ -33,11 +32,10 @@ from past.builtins import basestring
 
 from airflow.contrib.hooks.gcp_api_base_hook import GoogleCloudBaseHook
 from airflow.hooks.dbapi_hook import DbApiHook
+from airflow.utils.log.logging_mixin import LoggingMixin
 
-logging.getLogger("bigquery").setLevel(logging.INFO)
 
-
-class BigQueryHook(GoogleCloudBaseHook, DbApiHook):
+class BigQueryHook(GoogleCloudBaseHook, DbApiHook, LoggingMixin):
     """
     Interact with BigQuery. This hook uses the Google Cloud Platform
     connection.
@@ -74,7 +72,7 @@ class BigQueryHook(GoogleCloudBaseHook, DbApiHook):
         """
         raise NotImplementedError()
 
-    def get_pandas_df(self, bql, parameters=None):
+    def get_pandas_df(self, bql, parameters=None, dialect='legacy'):
         """
         Returns a Pandas DataFrame for the results produced by a BigQuery
         query. The DbApiHook method must be overridden because Pandas
@@ -85,10 +83,14 @@ class BigQueryHook(GoogleCloudBaseHook, DbApiHook):
 
         :param bql: The BigQuery SQL to execute.
         :type bql: string
+        :param parameters: The parameters to render the SQL query with (not used, leave to override superclass method)
+        :type parameters: mapping or iterable
+        :param dialect: Dialect of BigQuery SQL – legacy SQL or standard SQL
+        :type dialect: string in {'legacy', 'standard'}, default 'legacy'
         """
         service = self.get_service()
         project = self._get_field('project')
-        connector = BigQueryPandasConnector(project, service)
+        connector = BigQueryPandasConnector(project, service, dialect=dialect)
         schema, pages = connector.run_query(bql)
         dataframe_list = []
 
@@ -136,13 +138,14 @@ class BigQueryPandasConnector(GbqConnector):
     without forcing a three legged OAuth connection. Instead, we can inject
     service account credentials into the binding.
     """
-    def __init__(self, project_id, service, reauth=False, verbose=False):
+    def __init__(self, project_id, service, reauth=False, verbose=False, dialect='legacy'):
         gbq_check_google_client_version()
         gbq_test_google_api_imports()
         self.project_id = project_id
         self.reauth = reauth
         self.service = service
         self.verbose = verbose
+        self.dialect = dialect
 
 
 class BigQueryConnection(object):
@@ -173,23 +176,26 @@ class BigQueryConnection(object):
             "BigQueryConnection does not have transactions")
 
 
-class BigQueryBaseCursor(object):
+class BigQueryBaseCursor(LoggingMixin):
     """
     The BigQuery base cursor contains helper methods to execute queries against
     BigQuery. The methods can be used directly by operators, in cases where a
     PEP 249 cursor isn't needed.
     """
-
     def __init__(self, service, project_id):
         self.service = service
         self.project_id = project_id
+        self.running_job_id = None
 
     def run_query(
             self, bql, destination_dataset_table = False,
             write_disposition = 'WRITE_EMPTY',
             allow_large_results=False,
             udf_config = False,
-            use_legacy_sql=True):
+            use_legacy_sql=True,
+            maximum_billing_tier=None,
+            create_disposition='CREATE_IF_NEEDED',
+            query_params=None):
         """
         Executes a BigQuery SQL query. Optionally persists results in a BigQuery
         table. See here:
@@ -204,6 +210,9 @@ class BigQueryBaseCursor(object):
             BigQuery table to save the query results.
         :param write_disposition: What to do if the table already exists in
             BigQuery.
+        :type write_disposition: string
+        :param create_disposition: Specifies whether the job is allowed to create new tables.
+        :type create_disposition: string
         :param allow_large_results: Whether to allow large results.
         :type allow_large_results: boolean
         :param udf_config: The User Defined Function configuration for the query.
@@ -211,11 +220,14 @@ class BigQueryBaseCursor(object):
         :type udf_config: list
         :param use_legacy_sql: Whether to use legacy SQL (true) or standard SQL (false).
         :type use_legacy_sql: boolean
+        :param maximum_billing_tier: Positive integer that serves as a multiplier of the basic price.
+        :type maximum_billing_tier: integer
         """
         configuration = {
             'query': {
                 'query': bql,
-                'useLegacySql': use_legacy_sql
+                'useLegacySql': use_legacy_sql,
+                'maximumBillingTier': maximum_billing_tier
             }
         }
 
@@ -229,6 +241,7 @@ class BigQueryBaseCursor(object):
             configuration['query'].update({
                 'allowLargeResults': allow_large_results,
                 'writeDisposition': write_disposition,
+                'createDisposition': create_disposition,
                 'destinationTable': {
                     'projectId': destination_project,
                     'datasetId': destination_dataset,
@@ -240,6 +253,9 @@ class BigQueryBaseCursor(object):
             configuration['query'].update({
                 'userDefinedFunctionResources': udf_config
             })
+
+        if query_params:
+            configuration['query']['queryParameters'] = query_params
 
         return self.run_with_configuration(configuration)
 
@@ -272,10 +288,12 @@ class BigQueryBaseCursor(object):
         :param print_header: Whether to print a header for a CSV file extract.
         :type print_header: boolean
         """
+
         source_project, source_dataset, source_table = \
             _split_tablename(table_input=source_project_dataset_table,
                              default_project_id=self.project_id,
                              var_name='source_project_dataset_table')
+
         configuration = {
             'extract': {
                 'sourceTable': {
@@ -369,7 +387,12 @@ class BigQueryBaseCursor(object):
                  skip_leading_rows=0,
                  write_disposition='WRITE_EMPTY',
                  field_delimiter=',',
-                 schema_update_options=()):
+                 max_bad_records=0,
+                 quote_character=None,
+                 allow_quoted_newlines=False,
+                 allow_jagged_rows=False,
+                 schema_update_options=(),
+                 src_fmt_configs={}):
         """
         Executes a BigQuery load command to load data from Google Cloud Storage
         to BigQuery. See here:
@@ -400,9 +423,23 @@ class BigQueryBaseCursor(object):
         :type write_disposition: string
         :param field_delimiter: The delimiter to use when loading from a CSV.
         :type field_delimiter: string
+        :param max_bad_records: The maximum number of bad records that BigQuery can
+            ignore when running the job.
+        :type max_bad_records: int
+        :param quote_character: The value that is used to quote data sections in a CSV file.
+        :type quote_character: string
+        :param allow_quoted_newlines: Whether to allow quoted newlines (true) or not (false).
+        :type allow_quoted_newlines: boolean
+        :param allow_jagged_rows: Accept rows that are missing trailing optional columns.
+            The missing values are treated as nulls. If false, records with missing trailing columns
+            are treated as bad records, and if there are too many bad records, an invalid error is
+            returned in the job result. Only applicable when soure_format is CSV.
+        :type allow_jagged_rows: bool
         :param schema_update_options: Allows the schema of the desitination
             table to be updated as a side effect of the load job.
         :type schema_update_options: list
+        :param src_fmt_configs: configure optional fields specific to the source format
+        :type src_fmt_configs: dict
         """
 
         # bigquery only allows certain source formats
@@ -411,7 +448,7 @@ class BigQueryBaseCursor(object):
         # Refer to this link for more details:
         #   https://cloud.google.com/bigquery/docs/reference/rest/v2/jobs#configuration.query.tableDefinitions.(key).sourceFormat
         source_format = source_format.upper()
-        allowed_formats = ["CSV", "NEWLINE_DELIMITED_JSON", "AVRO", "GOOGLE_SHEETS"]
+        allowed_formats = ["CSV", "NEWLINE_DELIMITED_JSON", "AVRO", "GOOGLE_SHEETS", "DATASTORE_BACKUP"]
         if source_format not in allowed_formats:
             raise ValueError("{0} is not a valid source format. "
                     "Please use one of the following types: {1}"
@@ -463,15 +500,41 @@ class BigQueryBaseCursor(object):
                     "'WRITE_APPEND' or 'WRITE_TRUNCATE'."
                 )
             else:
-                logging.info(
+                self.log.info(
                     "Adding experimental "
                     "'schemaUpdateOptions': {0}".format(schema_update_options)
                 )
                 configuration['load']['schemaUpdateOptions'] = schema_update_options
 
-        if source_format == 'CSV':
-            configuration['load']['skipLeadingRows'] = skip_leading_rows
-            configuration['load']['fieldDelimiter'] = field_delimiter
+        if max_bad_records:
+            configuration['load']['maxBadRecords'] = max_bad_records
+
+        # if following fields are not specified in src_fmt_configs,
+        # honor the top-level params for backward-compatibility
+        if 'skipLeadingRows' not in src_fmt_configs:
+            src_fmt_configs['skipLeadingRows'] = skip_leading_rows
+        if 'fieldDelimiter' not in src_fmt_configs:
+            src_fmt_configs['fieldDelimiter'] = field_delimiter
+        if quote_character:
+            src_fmt_configs['quote'] = quote_character
+        if allow_quoted_newlines:
+            src_fmt_configs['allowQuotedNewlines'] = allow_quoted_newlines
+
+        src_fmt_to_configs_mapping = {
+            'CSV': ['allowJaggedRows', 'allowQuotedNewlines', 'autodetect',
+                    'fieldDelimiter', 'skipLeadingRows', 'ignoreUnknownValues',
+                    'nullMarker', 'quote'],
+            'DATASTORE_BACKUP': ['projectionFields'],
+            'NEWLINE_DELIMITED_JSON': ['autodetect', 'ignoreUnknownValues'],
+            'AVRO': [],
+        }
+        valid_configs = src_fmt_to_configs_mapping[source_format]
+        src_fmt_configs = {k: v for k, v in src_fmt_configs.items()
+                           if k in valid_configs}
+        configuration['load'].update(src_fmt_configs)
+
+        if allow_jagged_rows:
+            configuration['load']['allowJaggedRows'] = allow_jagged_rows
 
         return self.run_with_configuration(configuration)
 
@@ -497,13 +560,13 @@ class BigQueryBaseCursor(object):
         query_reply = jobs \
             .insert(projectId=self.project_id, body=job_data) \
             .execute()
-        job_id = query_reply['jobReference']['jobId']
+        self.running_job_id = query_reply['jobReference']['jobId']
 
         # Wait for query to finish.
         keep_polling_job = True
         while (keep_polling_job):
             try:
-                job = jobs.get(projectId=self.project_id, jobId=job_id).execute()
+                job = jobs.get(projectId=self.project_id, jobId=self.running_job_id).execute()
                 if (job['status']['state'] == 'DONE'):
                     keep_polling_job = False
                     # Check if job had errors.
@@ -514,18 +577,61 @@ class BigQueryBaseCursor(object):
                             )
                         )
                 else:
-                    logging.info('Waiting for job to complete : %s, %s', self.project_id, job_id)
+                    self.log.info('Waiting for job to complete : %s, %s', self.project_id, self.running_job_id)
                     time.sleep(5)
 
             except HttpError as err:
                 if err.resp.status in [500, 503]:
-                    logging.info('%s: Retryable error, waiting for job to complete: %s', err.resp.status, job_id)
+                    self.log.info('%s: Retryable error, waiting for job to complete: %s', err.resp.status, self.running_job_id)
                     time.sleep(5)
                 else:
                     raise Exception(
                         'BigQuery job status check failed. Final error was: %s', err.resp.status)
 
-        return job_id
+        return self.running_job_id
+        
+    def poll_job_complete(self, job_id):
+        jobs = self.service.jobs()
+        try:
+            job = jobs.get(projectId=self.project_id, jobId=job_id).execute()
+            if (job['status']['state'] == 'DONE'):
+                return True
+        except HttpError as err:
+            if err.resp.status in [500, 503]:
+                self.log.info('%s: Retryable error while polling job with id %s', err.resp.status, job_id)
+            else:
+                raise Exception(
+                    'BigQuery job status check failed. Final error was: %s', err.resp.status)
+        return False
+      
+        
+    def cancel_query(self):
+        """
+        Cancel all started queries that have not yet completed
+        """
+        jobs = self.service.jobs()
+        if (self.running_job_id and not self.poll_job_complete(self.running_job_id)):
+            self.log.info('Attempting to cancel job : %s, %s', self.project_id, self.running_job_id)
+            jobs.cancel(projectId=self.project_id, jobId=self.running_job_id).execute()
+        else:
+            self.log.info('No running BigQuery jobs to cancel.')
+            return
+        
+        # Wait for all the calls to cancel to finish
+        max_polling_attempts = 12
+        polling_attempts = 0
+        
+        job_complete = False
+        while (polling_attempts < max_polling_attempts and not job_complete):
+            polling_attempts = polling_attempts+1
+            job_complete = self.poll_job_complete(self.running_job_id)
+            if (job_complete):
+                self.log.info('Job successfully canceled: %s, %s', self.project_id, self.running_job_id)
+            elif(polling_attempts == max_polling_attempts):
+                self.log.info('Stopping polling due to timeout. Job with id %s has not completed cancel and may or may not finish.', self.running_job_id)
+            else:
+                self.log.info('Waiting for canceled job with id %s to finish.', self.running_job_id)
+                time.sleep(5)
 
     def get_schema(self, dataset_id, table_id):
         """
@@ -598,14 +704,14 @@ class BigQueryBaseCursor(object):
                         datasetId=deletion_dataset,
                         tableId=deletion_table) \
                 .execute()
-            logging.info('Deleted table %s:%s.%s.',
-                         deletion_project, deletion_dataset, deletion_table)
+            self.log.info('Deleted table %s:%s.%s.',
+                          deletion_project, deletion_dataset, deletion_table)
         except HttpError:
             if not ignore_if_missing:
                 raise Exception(
                     'Table deletion failed. Table does not exist.')
             else:
-                logging.info('Table does not exist. Skipping.')
+                self.log.info('Table does not exist. Skipping.')
 
 
     def run_table_upsert(self, dataset_id, table_resource, project_id=None):
@@ -632,8 +738,10 @@ class BigQueryBaseCursor(object):
             for table in tables_list_resp.get('tables', []):
                 if table['tableReference']['tableId'] == table_id:
                     # found the table, do update
-                    logging.info('table %s:%s.%s exists, updating.',
-                                 project_id, dataset_id, table_id)
+                    self.log.info(
+                        'Table %s:%s.%s exists, updating.',
+                        project_id, dataset_id, table_id
+                    )
                     return self.service.tables().update(projectId=project_id,
                                                         datasetId=dataset_id,
                                                         tableId=table_id,
@@ -648,8 +756,10 @@ class BigQueryBaseCursor(object):
             # If there is no next page, then the table doesn't exist.
             else:
                 # do insert
-                logging.info('table %s:%s.%s does not exist. creating.',
-                             project_id, dataset_id, table_id)
+                self.log.info(
+                    'Table %s:%s.%s does not exist. creating.',
+                    project_id, dataset_id, table_id
+                )
                 return self.service.tables().insert(projectId=project_id,
                                                     datasetId=dataset_id,
                                                     body=table_resource).execute()
@@ -693,18 +803,20 @@ class BigQueryBaseCursor(object):
                                 'tableId': view_table}}
         # check to see if the view we want to add already exists.
         if view_access not in access:
-            logging.info('granting table %s:%s.%s authorized view access to %s:%s dataset.',
-                         view_project, view_dataset, view_table,
-                         source_project, source_dataset)
+            self.log.info(
+                'Granting table %s:%s.%s authorized view access to %s:%s dataset.',
+                view_project, view_dataset, view_table, source_project, source_dataset
+            )
             access.append(view_access)
             return self.service.datasets().patch(projectId=source_project,
                                                  datasetId=source_dataset,
                                                  body={'access': access}).execute()
         else:
             # if view is already in access, do nothing.
-            logging.info('table %s:%s.%s already has authorized view access to %s:%s dataset.',
-                         view_project, view_dataset, view_table,
-                         source_project, source_dataset)
+            self.log.info(
+                'Table %s:%s.%s already has authorized view access to %s:%s dataset.',
+                view_project, view_dataset, view_table, source_project, source_dataset
+            )
             return source_dataset_resource
 
 
@@ -922,13 +1034,22 @@ def _split_tablename(table_input, default_project_id, var_name=None):
         else:
             return "Format exception for {var}: ".format(var=var_name)
 
-    cmpt = table_input.split(':')
+    if table_input.count('.') + table_input.count(':') > 3:
+        raise Exception((
+            '{var}Use either : or . to specify project '
+            'got {input}'
+        ).format(var=var_print(var_name), input=table_input))
+
+    cmpt = table_input.rsplit(':', 1)
+    project_id = None
+    rest = table_input
     if len(cmpt) == 1:
         project_id = None
         rest = cmpt[0]
-    elif len(cmpt) == 2:
-        project_id = cmpt[0]
-        rest = cmpt[1]
+    elif len(cmpt) == 2 and cmpt[0].count(':') <= 1:
+        if cmpt[-1].count('.') != 2:
+            project_id = cmpt[0]
+            rest = cmpt[1]
     else:
         raise Exception((
             '{var}Expect format of (<project:)<dataset>.<table>, '
@@ -955,10 +1076,12 @@ def _split_tablename(table_input, default_project_id, var_name=None):
 
     if project_id is None:
         if var_name is not None:
-            logging.info(
-                'project not included in {var}: '
-                '{input}; using project "{project}"'.format(
-                    var=var_name, input=table_input, project=default_project_id))
+            log = LoggingMixin().log
+            log.info(
+                'Project not included in {var}: {input}; using project "{project}"'.format(
+                    var=var_name, input=table_input, project=default_project_id
+                )
+            )
         project_id = default_project_id
 
     return project_id, dataset_id, table_id

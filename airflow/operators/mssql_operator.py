@@ -11,9 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
-import logging
-
 from airflow.hooks.mssql_hook import MsSqlHook
 from airflow.models import BaseOperator
 from airflow.utils.decorators import apply_defaults
@@ -22,11 +19,13 @@ from airflow.utils.decorators import apply_defaults
 class MsSqlOperator(BaseOperator):
     """
     Executes sql code in a specific Microsoft SQL database
+
     :param mssql_conn_id: reference to a specific mssql database
     :type mssql_conn_id: string
     :param sql: the sql code to be executed
-    :type sql: string or string pointing to a template file.
-    File must have a '.sql' extensions.
+    :type sql: string or string pointing to a template file with .sql extension
+    :param database: name of database which overwrite defined one in connection
+    :type database: string
     """
 
     template_fields = ('sql',)
@@ -36,14 +35,17 @@ class MsSqlOperator(BaseOperator):
     @apply_defaults
     def __init__(
             self, sql, mssql_conn_id='mssql_default', parameters=None,
-            autocommit=False, *args, **kwargs):
+            autocommit=False, database=None, *args, **kwargs):
         super(MsSqlOperator, self).__init__(*args, **kwargs)
         self.mssql_conn_id = mssql_conn_id
         self.sql = sql
         self.parameters = parameters
         self.autocommit = autocommit
+        self.database = database
 
     def execute(self, context):
-        logging.info('Executing: ' + str(self.sql))
-        hook = MsSqlHook(mssql_conn_id=self.mssql_conn_id)
-        hook.run(self.sql, autocommit=self.autocommit, parameters=self.parameters)
+        self.log.info('Executing: %s', self.sql)
+        hook = MsSqlHook(mssql_conn_id=self.mssql_conn_id,
+                         schema=self.database)
+        hook.run(self.sql, autocommit=self.autocommit,
+                 parameters=self.parameters)

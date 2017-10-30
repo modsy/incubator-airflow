@@ -37,11 +37,11 @@ class TriggerRuleDep(BaseTIDep):
         if not ti.task.upstream_list:
             yield self._passing_status(
                 reason="The task instance did not have any upstream tasks.")
-            raise StopIteration
+            return
 
         if ti.task.trigger_rule == TR.DUMMY:
             yield self._passing_status(reason="The task had a dummy trigger rule set.")
-            raise StopIteration
+            return
 
         # TODO(unknown): this query becomes quite expensive with dags that have many
         # tasks. It should be refactored to let the task report to the dag run and get the
@@ -124,8 +124,8 @@ class TriggerRuleDep(BaseTIDep):
         tr = task.trigger_rule
         upstream_done = done >= upstream
         upstream_tasks_state = {
-            "successes": successes, "skipped": skipped, "failed": failed,
-            "upstream_failed": upstream_failed, "done": done
+            "total": upstream, "successes": successes, "skipped": skipped,
+            "failed": failed, "upstream_failed": upstream_failed, "done": done
         }
         # TODO(aoen): Ideally each individual trigger rules would be it's own class, but
         # this isn't very feasible at the moment since the database queries need to be

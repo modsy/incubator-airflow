@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from datetime import timedelta, datetime
+from datetime import timedelta
 
+import airflow
 from airflow import DAG
 from airflow.contrib.operators.emr_create_job_flow_operator import EmrCreateJobFlowOperator
 from airflow.contrib.operators.emr_add_steps_operator import EmrAddStepsOperator
@@ -23,8 +24,8 @@ from airflow.contrib.operators.emr_terminate_job_flow_operator import EmrTermina
 DEFAULT_ARGS = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'start_date': datetime(2016, 3, 13),
-    'email': ['airflow@airflow.com'],
+    'start_date': airflow.utils.dates.days_ago(2),
+    'email': ['airflow@example.com'],
     'email_on_failure': False,
     'email_on_retry': False
 }

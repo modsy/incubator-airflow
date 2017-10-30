@@ -16,7 +16,7 @@ from airflow.exceptions import AirflowException
 from airflow.models import BaseOperator, Pool
 from airflow.utils.decorators import apply_defaults
 from airflow.utils.db import provide_session
-from airflow.executors import DEFAULT_EXECUTOR
+from airflow.executors import GetDefaultExecutor
 
 
 class SubDagOperator(BaseOperator):
@@ -30,7 +30,7 @@ class SubDagOperator(BaseOperator):
     def __init__(
             self,
             subdag,
-            executor=DEFAULT_EXECUTOR,
+            executor=GetDefaultExecutor(),
             *args, **kwargs):
         """
         Yo dawg. This runs a sub dag. By convention, a sub dag's dag_id
@@ -41,9 +41,11 @@ class SubDagOperator(BaseOperator):
         :param dag: the parent DAG
         :type subdag: airflow.DAG
         """
-        if 'dag' not in kwargs:
-            raise AirflowException("Please pass in the `dag` param")
-        dag = kwargs['dag']
+        import airflow.models
+        dag = kwargs.get('dag') or airflow.models._CONTEXT_MANAGER_DAG
+        if not dag:
+            raise AirflowException('Please pass in the `dag` param or call '
+                                   'within a DAG context manager')
         session = kwargs.pop('session')
         super(SubDagOperator, self).__init__(*args, **kwargs)
 
@@ -58,25 +60,27 @@ class SubDagOperator(BaseOperator):
         # validate that subdag operator and subdag tasks don't have a
         # pool conflict
         if self.pool:
-            pool = (
-                session
-                .query(Pool)
-                .filter(Pool.slots == 1)
-                .filter(Pool.pool == self.pool)
-                .first()
-            )
             conflicts = [t for t in subdag.tasks if t.pool == self.pool]
-            if pool and any(t.pool == self.pool for t in subdag.tasks):
-                raise AirflowException(
-                    'SubDagOperator {sd} and subdag task{plural} {t} both use '
-                    'pool {p}, but the pool only has 1 slot. The subdag tasks'
-                    'will never run.'.format(
-                        sd=self.task_id,
-                        plural=len(conflicts) > 1,
-                        t=', '.join(t.task_id for t in conflicts),
-                        p=self.pool
-                    )
+            if conflicts:
+                # only query for pool conflicts if one may exist
+                pool = (
+                    session
+                    .query(Pool)
+                    .filter(Pool.slots == 1)
+                    .filter(Pool.pool == self.pool)
+                    .first()
                 )
+                if pool and any(t.pool == self.pool for t in subdag.tasks):
+                    raise AirflowException(
+                        'SubDagOperator {sd} and subdag task{plural} {t} both '
+                        'use pool {p}, but the pool only has 1 slot. The '
+                        'subdag tasks will never run.'.format(
+                            sd=self.task_id,
+                            plural=len(conflicts) > 1,
+                            t=', '.join(t.task_id for t in conflicts),
+                            p=self.pool
+                        )
+                    )
 
         self.subdag = subdag
         self.executor = executor
