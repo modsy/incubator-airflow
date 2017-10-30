@@ -1,3 +1,4 @@
+import os
 from builtins import range
 
 from airflow import configuration
@@ -57,14 +58,12 @@ class BaseExecutor(LoggingMixin):
             pickle_id=pickle_id,
             params_jsonstr=params_jsonstr)
 
-        if task_instance.task.queue:
-            command.queue = task_instance.task.queue
-
+        job_queue = os.getenv('MCP_AIRFLOW_QUEUE_NAME', 'AirflowJobQueue')
         self.queue_command(
             task_instance,
             command,    # command is a Command object
             priority=task_instance.task.priority_weight_total,
-            queue=task_instance.task.queue)
+            queue=job_queue)
 
     def sync(self):
         """
