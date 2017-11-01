@@ -32,6 +32,11 @@ class State(object):
     UPSTREAM_FAILED = "upstream_failed"
     SKIPPED = "skipped"
 
+    # Sub states for RUNNING
+    RUNNING_PENDING = 'running_pending'  # Transitioned into Running, have not sent messages to workers yet
+    RUNNING_KICKED_OFF = 'running_kicked_off'  # Sent message to workers
+    RUNNING_STARTED = 'running_started'  # Worker picks up the message and started running for real
+
     state_color = {
         QUEUED: 'gray',
         RUNNING: 'lime',

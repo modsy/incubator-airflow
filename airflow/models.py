@@ -698,6 +698,10 @@ class TaskInstance(Base):
     priority_weight = Column(Integer)
     operator = Column(String(1000))
     queued_dttm = Column(DateTime)
+    sub_state = Column(String(32), default=State.RUNNING_PENDING, index=True)
+    # Time when transitioned into the current sub_state
+    # If sub_state == RUNNING_STARTED, then this timestamp should line up with `start_date`
+    sub_state_timestamp = Column(DateTime)
 
     __table_args__ = (
         Index('ti_dag_state', dag_id, state),
