@@ -136,6 +136,10 @@ def state_f(v, c, m, p):
     return state_token(m.state)
 
 
+def sub_state_f(v, c, m, p):
+    return state_token(m.sub_state)
+
+
 def duration_f(v, c, m, p):
     if m.end_date and m.duration:
         return timedelta(seconds=m.duration)
@@ -143,9 +147,10 @@ def duration_f(v, c, m, p):
 
 def datetime_f(v, c, m, p):
     attr = getattr(m, p)
-    dttm = attr.isoformat() if attr else ''
-    if datetime.now().isoformat()[:4] == dttm[:4]:
-        dttm = dttm[5:]
+    if attr:
+        dttm = attr.strftime('%Y-%m-%dT%H:%M:%S.%f')
+    else:
+        dttm = ''
     return Markup("<nobr>{}</nobr>".format(dttm))
 
 
@@ -2097,15 +2102,17 @@ class TaskInstanceModelView(ModelViewOnly):
     verbose_name_plural = "task instances"
     verbose_name = "task instance"
     column_filters = (
-        'state', 'dag_id', 'task_id', 'execution_date', 'hostname',
+        'state', 'sub_state', 'sub_state_timestamp', 'dag_id', 'task_id', 'execution_date', 'hostname',
         'queue', 'pool', 'operator', 'start_date', 'end_date')
     named_filter_urls = True
     column_formatters = dict(
         log=log_link, task_id=task_instance_link,
         hostname=nobr_f,
         state=state_f,
+        sub_state=sub_state_f,
         execution_date=datetime_f,
         start_date=datetime_f,
+        sub_state_timestamp=datetime_f,
         end_date=datetime_f,
         queued_dttm=datetime_f,
         dag_id=dag_link, duration=duration_f)
@@ -2117,12 +2124,17 @@ class TaskInstanceModelView(ModelViewOnly):
             ('running', 'running'),
             ('failed', 'failed'),
         ],
+        'sub_state': [
+            (State.PRE_PENDING, 'pending'),
+            (State.PRE_KICKED_OFF, 'kicked off'),
+            (State.PRE_STARTED, 'started'),
+        ],
     }
+    column_labels = {'sub_state': 'Pre-Running State', 'sub_state_timestamp': 'Pre-Running State time'}
     column_list = (
-        'state', 'dag_id', 'task_id', 'execution_date', 'operator',
-        'start_date', 'end_date', 'duration', 'log', 'hostname', 'job_id',
-        'unixname', 'priority_weight', 'queue', 'queued_dttm', 'try_number',
-        'pool')
+        'state', 'dag_id', 'task_id', 'execution_date', 'sub_state', 'sub_state_timestamp', 'operator',
+        'start_date', 'end_date', 'duration', 'log', 'hostname', 'job_id', 'queue',
+        'queued_dttm', 'try_number')
     can_delete = True
     page_size = 500
 

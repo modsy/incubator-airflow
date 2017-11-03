@@ -698,9 +698,9 @@ class TaskInstance(Base):
     priority_weight = Column(Integer)
     operator = Column(String(1000))
     queued_dttm = Column(DateTime)
-    sub_state = Column(String(32), default=State.RUNNING_PENDING, index=True)
-    # Time when transitioned into the current sub_state
-    # If sub_state == RUNNING_STARTED, then this timestamp should line up with `start_date`
+    sub_state = Column(String(32), default=State.PRE_PENDING, index=True)
+    # Time when transitioned into the current pre_state (sub_state is wrongly named)
+    # If sub_state == PRE_STARTED, then this timestamp should line up with `start_date`
     sub_state_timestamp = Column(DateTime)
 
     __table_args__ = (
@@ -852,6 +852,8 @@ class TaskInstance(Base):
             self.start_date = ti.start_date
             self.end_date = ti.end_date
             self.try_number = ti.try_number
+            self.sub_state = ti.sub_state
+            self.sub_state_timestamp = ti.sub_state_timestamp
         else:
             self.state = None
 
@@ -878,6 +880,12 @@ class TaskInstance(Base):
         self.state = state
         self.start_date = datetime.now()
         self.end_date = datetime.now()
+        session.merge(self)
+        session.commit()
+
+    def set_pre_running_state(self, pre_running_state, session):
+        self.sub_state = pre_running_state
+        self.sub_state_timestamp = datetime.now()
         session.merge(self)
         session.commit()
 
@@ -930,7 +938,6 @@ class TaskInstance(Base):
         # anything else
         else:
             return False
-
 
     def is_premature(self):
         """
@@ -1196,7 +1203,7 @@ class TaskInstance(Base):
         self.hostname = socket.gethostname()
         self.operator = task.__class__.__name__
 
-        if self.state == State.RUNNING:
+        if self.state == State.RUNNING and self.sub_state == State.PRE_STARTED:
             logging.warning("Another instance is running, skipping.")
         elif not force and self.state == State.SUCCESS:
             logging.info(
@@ -1253,6 +1260,8 @@ class TaskInstance(Base):
             if not test_mode:
                 session.add(Log(State.RUNNING, self))
             self.state = State.RUNNING
+            self.sub_state = State.PRE_STARTED
+            self.sub_state_timestamp = self.start_date
             self.end_date = None
             if not test_mode:
                 session.merge(self)

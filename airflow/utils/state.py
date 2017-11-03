@@ -33,9 +33,9 @@ class State(object):
     SKIPPED = "skipped"
 
     # Sub states for RUNNING
-    RUNNING_PENDING = 'running_pending'  # Transitioned into Running, have not sent messages to workers yet
-    RUNNING_KICKED_OFF = 'running_kicked_off'  # Sent message to workers
-    RUNNING_STARTED = 'running_started'  # Worker picks up the message and started running for real
+    PRE_PENDING = 'running_pending'  # Transitioned into Running, have not sent messages to workers yet, equivalent to None
+    PRE_KICKED_OFF = 'running_kicked_off'  # Sent message to workers
+    PRE_STARTED = 'running_started'  # Worker picks up the message and started running for real
 
     state_color = {
         QUEUED: 'gray',
@@ -46,6 +46,9 @@ class State(object):
         UP_FOR_RETRY: 'gold',
         UPSTREAM_FAILED: 'orange',
         SKIPPED: 'pink',
+        PRE_STARTED: 'green',
+        PRE_KICKED_OFF: 'blue',
+        PRE_PENDING: 'red',
     }
 
     @classmethod
