@@ -86,8 +86,7 @@ Session = scoped_session(
     sessionmaker(autocommit=False, autoflush=False, bind=engine))
 
 # can't move this to conf due to ConfigParser interpolation
-LOG_FORMAT = (
-    '%(asctime)s - %(name)s - %(levelname)s - %(process)d - %(message)s')
+LOG_FORMAT = '%(asctime)-15s - %(name)s - %(levelname)s - %(process)d - %(message)s'
 SIMPLE_LOG_FORMAT = '%(asctime)s %(levelname)s - %(message)s'
 
 
@@ -121,12 +120,10 @@ def policy(task_instance):
 def configure_logging():
     root = logging.getLogger()
     root.handlers = []
+
     logging.basicConfig(
         format=LOG_FORMAT, stream=sys.stdout, level=LOGGING_LEVEL)
     handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.DEBUG)
-    handler.setFormatter(LOG_FORMAT)
-
     root.addHandler(handler)
 
 

@@ -20,7 +20,7 @@ in their PYTHONPATH. airflow_login should be based off the
 `airflow.www.login`
 """
 from builtins import object
-__version__ = '1.7.12-modsy'
+__version__ = '1.8.1-modsy'
 
 import logging
 import os

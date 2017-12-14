@@ -197,11 +197,20 @@ def run(args, dag=None):
     iso = args.execution_date.isoformat()
     filename = "{directory}/{iso}".format(**locals())
 
+    fmt_str = '%(asctime)-15s %(message)s'
+
     logging.root.handlers = []
     logging.basicConfig(
         filename=filename,
         level=settings.LOGGING_LEVEL,
-        format=settings.LOG_FORMAT)
+        format=settings.LOG_FORMAT
+        )
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(settings.LOGGING_LEVEL)
+
+    fmt = logging.Formatter(settings.LOG_FORMAT)
+    handler.setFormatter(fmt)
+    logging.root.addHandler(handler)
 
     if not args.pickle and not dag:
         dag = get_dag(args)

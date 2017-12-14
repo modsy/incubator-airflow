@@ -29,7 +29,6 @@ def upgrade():
     op.create_index(op.f('ix_task_instance_sub_state'), 'task_instance', ['sub_state'], unique=False)
     op.drop_index('dag_id', table_name='task_instance_timeout')
     op.drop_index('dagrun_run_id', table_name='task_instance_timeout')
-    op.drop_column('users', 'password')
     op.alter_column('xcom', 'execution_date',
                existing_type=mysql.DATETIME(fsp=6),
                nullable=False)
@@ -47,7 +46,6 @@ def downgrade():
     op.alter_column('xcom', 'execution_date',
                existing_type=mysql.DATETIME(fsp=6),
                nullable=True)
-    op.add_column('users', sa.Column('password', mysql.VARCHAR(collation=u'utf8mb4_bin', length=255), nullable=True))
     op.create_index('dagrun_run_id', 'task_instance_timeout', ['dagrun_run_id'], unique=True)
     op.create_index('dag_id', 'task_instance_timeout', ['dag_id', 'task_id', 'execution_date'], unique=True)
     op.drop_index(op.f('ix_task_instance_sub_state'), table_name='task_instance')
